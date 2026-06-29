@@ -29,6 +29,7 @@ export interface HudSnapshot {
   selectedTrackId: string;
   selectedModeId: GameModeId;
   menuScreen: MenuScreen;
+  assetsReady: boolean;
 }
 
 interface HudStore {
@@ -65,6 +66,7 @@ export const useHudStore = create<HudStore>((set) => ({
     selectedTrackId: 'smart_kitchen',
     selectedModeId: 'standard_race',
     menuScreen: 'race',
+    assetsReady: false,
   },
   setSnapshot: (p) => set((s) => ({ snapshot: { ...s.snapshot, ...p } })),
   reloadProfile: () => set({ profile: loadProfile() }),

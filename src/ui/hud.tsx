@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, type ReactNode, useState } from 'react';
+import { isGameMuted, toggleGameMute } from '../audio/audio-bind.js';
 import { useHudStore } from './hud-store.js';
 import { VEHICLES } from '../config/vehicles.js';
 import { GAME_MODES } from '../config/game-modes.js';
@@ -18,6 +19,7 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
   const profile = useHudStore((s) => s.profile);
   const setSnapshot = useHudStore((s) => s.setSnapshot);
   const reloadProfile = useHudStore((s) => s.reloadProfile);
+  const [muted, setMuted] = useState(isGameMuted());
 
   useEffect(() => {
     if (!racing) reloadProfile();
@@ -102,11 +104,16 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
                 </div>
               </Section>
 
-              <p className="mb-3 text-[10px] text-white/45">
-                WASD / strzałki · Space = boost · E = power-up · mobile: dotyk
-              </p>
-              <button type="button" className="btn-primary w-full" onClick={onStart}>
-                START
+          <p className="mb-3 text-[10px] text-white/45">
+            A/D lub ←→ skręt · auto-gaz · S hamulec · Shift drift · Space boost · E power-up
+          </p>
+              <button
+                type="button"
+                className="btn-primary w-full disabled:opacity-40"
+                disabled={!snap.assetsReady}
+                onClick={onStart}
+              >
+                {snap.assetsReady ? 'START' : 'ŁADOWANIE…'}
               </button>
             </>
           )}
@@ -214,8 +221,18 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
             <span className="text-red-400"> POZA KADREM: {snap.eliminationStrikes}</span>
           )}
         </div>
-        <div className="panel text-[10px] text-white/60">
-          {(snap.timeMs / 1000).toFixed(1)}s · 🪙{snap.tokensCollected}
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            className="pointer-events-auto panel px-2 py-1 text-[10px]"
+            onClick={() => setMuted(toggleGameMute())}
+            aria-label={muted ? 'Włącz dźwięk' : 'Wycisz'}
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
+          <div className="panel text-[10px] text-white/60">
+            {(snap.timeMs / 1000).toFixed(1)}s · 🪙{snap.tokensCollected}
+          </div>
         </div>
       </div>
 

@@ -119,6 +119,49 @@ body,
   padding: 8px 0;
 }
 
+.touch-btn-drift {
+  background: rgba(160, 80, 255, 0.35);
+  border-color: #a050ff;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 9px;
+}
+
+.touch-btn-brake {
+  background: rgba(255, 80, 80, 0.35);
+  border-color: #ff5050;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 9px;
+}
+
+.touch-joy-zone {
+  width: 140px;
+  height: 140px;
+}
+
+.touch-joy-base {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid rgba(64, 192, 255, 0.35);
+  background: rgba(10, 20, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-joy-knob {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(32, 160, 224, 0.55);
+  border: 2px solid #60d0ff;
+  transition: transform 40ms linear;
+}
+
 .touch-btn {
   background: rgba(255, 64, 160, 0.35);
   border: 1px solid #ff40a0;

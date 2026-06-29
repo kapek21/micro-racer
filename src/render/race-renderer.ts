@@ -1,104 +1,253 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { RaceState, TrackDef } from '../core/types.js';
-import { vehicleById } from '../config/vehicles.js';
+import { getLateralSpeed } from '../physics/vehicle-controller.js';
 import { getTrackSamples } from '../race/race-sim.js';
 import { leaderRacer } from '../race/mode-logic.js';
+import type { SpriteAtlas } from './sprite-atlas.js';
+import { loadSpriteAtlas } from './asset-loader.js';
+import { ParticleSystem } from './particle-system.js';
+import { RaceCamera } from './race-camera.js';
+import { drawBiome, drawTrack } from './track-draw.js';
+import { drawVehicleFx } from './vehicle-draw.js';
+import { SpritePool } from './sprite-pool.js';
+import type { PixiApp } from './pixi-app.js';
+
+const VEHICLE_SCALE = 0.72;
+const HAZARD_SCALE = 0.68;
+const PICKUP_SCALE = 0.62;
+const TOKEN_SCALE = 0.58;
+const MINE_SCALE = 0.55;
+const PAD_SCALE = 0.95;
 
 export class RaceRenderer {
-  private readonly g: Graphics;
+  private readonly layers: {
+    bg: Graphics;
+    track: Graphics;
+    decals: Graphics;
+    fx: Graphics;
+    particles: Graphics;
+  };
+  private readonly spriteLayer: Container;
+  private readonly shadows: SpritePool;
+  private readonly entities: SpritePool;
   private readonly labels: Container;
+  private readonly atlas: SpriteAtlas;
+  private readonly particles = new ParticleSystem();
+  private readonly camera = new RaceCamera();
+  private readonly pixi: PixiApp;
   private t = 0;
 
-  constructor(world: Container) {
-    this.g = new Graphics();
+  private constructor(pixi: PixiApp, atlas: SpriteAtlas) {
+    this.pixi = pixi;
+    this.atlas = atlas;
+    this.layers = {
+      bg: new Graphics(),
+      track: new Graphics(),
+      decals: new Graphics(),
+      fx: new Graphics(),
+      particles: new Graphics(),
+    };
+    this.spriteLayer = new Container();
+    this.shadows = new SpritePool(this.spriteLayer);
+    this.entities = new SpritePool(this.spriteLayer);
     this.labels = new Container();
-    world.addChild(this.g);
-    world.addChild(this.labels);
+
+    pixi.camera.addChild(this.layers.bg);
+    pixi.camera.addChild(this.layers.track);
+    pixi.camera.addChild(this.spriteLayer);
+    pixi.camera.addChild(this.layers.decals);
+    pixi.camera.addChild(this.layers.fx);
+    pixi.camera.addChild(this.layers.particles);
+    pixi.camera.addChild(this.labels);
+  }
+
+  static async create(pixi: PixiApp): Promise<RaceRenderer> {
+    const atlas = await loadSpriteAtlas();
+    return new RaceRenderer(pixi, atlas);
   }
 
   sync(state: RaceState, track: TrackDef, dtMs: number): void {
     this.t += dtMs;
-    this.g.clear();
+    this.particles.tick(dtMs);
+
+    const player = state.racers.find((r) => r.isPlayer);
+    const follow = state.mode === 'elimination_camera' ? leaderRacer(state.racers) : player;
+    if (follow) {
+      this.camera.follow(
+        follow.x,
+        follow.y,
+        follow.angle,
+        follow.speed,
+        dtMs,
+        state.mode === 'elimination_camera' ? 'leader' : 'player',
+      );
+    }
+    this.camera.apply(this.pixi.camera);
+    this.pixi.applyViewportTransform();
+
+    for (const r of state.racers) {
+      if (r.eliminated) continue;
+      const intensity = Math.min(1, r.speed / 350) * (r.boostMs > 0 ? 1.5 : 1);
+      if (r.speed > 40) this.particles.emitExhaust(r.x, r.y, r.angle, intensity);
+      if (getLateralSpeed(r) > 70 && r.speed > 100) this.particles.emitSkid(r.x, r.y);
+    }
+
+    this.layers.bg.clear();
+    this.layers.track.clear();
+    this.layers.decals.clear();
+    this.layers.fx.clear();
+    this.layers.particles.clear();
     this.labels.removeChildren();
 
-    drawBiomeBg(this.g, track);
-    drawTrackSurface(this.g, track);
-    drawSlipZones(this.g, track);
-    drawBoostPads(this.g, track);
-    drawGates(this.g, track, state);
-    drawCameraTraps(this.g, track, this.t);
-    drawTokens(this.g, state);
-    drawMines(this.g, state);
-    drawFoam(this.g, state);
-    drawHazards(this.g, state, track, this.t);
-    drawPickups(this.g, state);
-    drawRacers(this.g, this.labels, state);
+    const active = new Set<string>();
+
+    drawBiome(this.layers.bg, track, this.t);
+    drawTrack(this.layers.track, track, getTrackSamples(), this.atlas);
+
+    drawSlipZones(this.layers.decals, track);
+    drawGates(this.layers.decals, track, state);
+    drawCameraTraps(this.layers.decals, track, this.t);
+    drawFoam(this.layers.decals, state);
+
+    const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.005);
+    const pulseFast = 0.5 + 0.5 * Math.sin(this.t * 0.012);
+
+    for (const pad of track.boostPads) {
+      const id = `pad_${pad.x}_${pad.y}`;
+      active.add(id);
+      const glowFrame = Math.floor(this.t * 0.006) % 2 === 0;
+      const padPulse = 1 + pulse * 0.08;
+      this.entities.set(
+        id,
+        glowFrame ? this.atlas.boostPadGlow : this.atlas.boostPad,
+        pad.x + pad.w / 2,
+        pad.y + pad.h / 2,
+        0,
+        PAD_SCALE * padPulse,
+        {
+          glow: {
+            texture: this.atlas.glow,
+            alpha: 0.25 + pulse * 0.35,
+            scale: 1.4,
+          },
+        },
+      );
+    }
+
+    for (const tok of state.tokens) {
+      if (!tok.active) continue;
+      const bob = Math.sin(this.t * 0.006 + tok.x) * 4;
+      const spin = this.t * 0.003;
+      const shimmer = 0.85 + pulseFast * 0.15;
+      const id = `tok_${tok.id}`;
+      active.add(id);
+      this.entities.set(id, this.atlas.token, tok.x, tok.y + bob, spin, TOKEN_SCALE * shimmer, {
+        glow: { texture: this.atlas.glow, alpha: 0.2 + pulse * 0.25, scale: 1.3 },
+      });
+    }
+
+    for (const m of state.mines) {
+      const id = `mine_${m.id}`;
+      active.add(id);
+      const warn = 0.7 + pulseFast * 0.3;
+      this.entities.set(id, this.atlas.mine, m.x, m.y, this.t * 0.001, MINE_SCALE * (1 + pulseFast * 0.06), {
+        alpha: warn,
+        glow: { texture: this.atlas.glow, alpha: pulseFast * 0.4, scale: 1.1 },
+      });
+    }
+
+    for (const p of state.pickups) {
+      if (!p.active) continue;
+      const bob = Math.sin(this.t * 0.007 + p.x) * 6;
+      const glowFrame = Math.floor(this.t * 0.005) % 2 === 0;
+      const id = `pick_${p.spawnId}`;
+      active.add(id);
+      this.entities.set(
+        id,
+        glowFrame ? this.atlas.pickupGlow : this.atlas.pickup,
+        p.x,
+        p.y + bob,
+        Math.sin(this.t * 0.002 + p.y) * 0.08,
+        PICKUP_SCALE * (1 + pulse * 0.06),
+        {
+          glow: { texture: this.atlas.glow, alpha: 0.35 + pulse * 0.3, scale: 1.5 },
+        },
+      );
+    }
+
+    for (const h of state.hazards) {
+      const id = `hz_${h.id}`;
+      active.add(id);
+      let tex = this.atlas.vacuum;
+      let scale = HAZARD_SCALE;
+      let rot = h.angle;
+      let bob = 0;
+
+      if (h.kind === 'robot_mower') {
+        tex = this.atlas.mower;
+        rot += Math.sin(h.t * 0.02) * 0.15;
+      } else if (h.kind === 'drone_drop') {
+        tex = this.atlas.drone;
+        bob = Math.sin(this.t * 0.008 + h.id.length) * 3;
+        rot += Math.sin(this.t * 0.025) * 0.2;
+      } else if (h.kind === 'conveyor') {
+        tex = this.atlas.conveyor;
+        scale = 0.85;
+      } else {
+        rot += Math.sin(h.t * 0.015) * 0.12;
+      }
+
+      this.entities.set(id, tex, h.x, h.y + bob, rot, scale);
+    }
+
+    const sorted = [...state.racers].filter((r) => !r.eliminated).sort((a, b) => a.y - b.y);
+    for (const r of sorted) {
+      const sid = `shadow_${r.id}`;
+      active.add(sid);
+      const shadowScale = 1 + Math.min(0.15, r.speed / 500);
+      this.shadows.set(sid, this.atlas.shadow, r.x + 2, r.y + 8, 0, shadowScale);
+    }
+
+    for (const r of sorted) {
+      const id = `car_${r.id}`;
+      active.add(id);
+      const tex = this.atlas.vehicles[r.vehicleId] ?? this.atlas.vehicles['volt_mini_gt']!;
+      const lean = Math.sin(r.angle) * 0.04 * Math.min(1, r.speed / 200);
+      const boostScale = r.boostMs > 0 ? 1.04 : 1;
+      this.entities.set(id, tex, r.x, r.y, r.angle + Math.PI / 2 + lean, VEHICLE_SCALE * boostScale, {
+        glow:
+          r.boostMs > 0
+            ? { texture: this.atlas.glow, alpha: 0.45 + pulseFast * 0.2, scale: 1.6 }
+            : r.isPlayer
+              ? { texture: this.atlas.glow, alpha: 0.12 + pulse * 0.08, scale: 1.35 }
+              : undefined,
+      });
+    }
+    this.entities.sortByY();
+
+    for (const r of state.racers) {
+      if (r.eliminated) continue;
+      drawVehicleFx(this.layers.fx, r, 0);
+    }
+
+    drawParticles(this.layers.particles, this.particles);
+    drawLabels(this.labels, state);
+
+    this.shadows.hideExcept(active);
+    this.entities.hideExcept(active);
 
     if (state.mode === 'elimination_camera') {
       const leader = leaderRacer(state.racers);
       if (leader) {
-        this.g.circle(leader.x, leader.y, 320).stroke({ color: 0xffffff, width: 1, alpha: 0.15 });
+        this.layers.fx.circle(leader.x, leader.y, 320).stroke({ color: 0xffffff, width: 2, alpha: 0.12 });
       }
     }
   }
 }
 
-function drawBiomeBg(g: Graphics, track: TrackDef): void {
-  g.rect(0, 0, 1200, 800).fill(track.bgColor);
-  g.rect(40, 40, 1120, 720).fill({ color: track.accentColor, alpha: 0.08 });
-  g.rect(60, 60, 1080, 680).fill({ color: 0xffffff, alpha: 0.03 });
-
-  if (track.biome === 'kitchen') {
-    g.roundRect(460, 320, 280, 160, 16).fill({ color: 0x505868, alpha: 0.9 });
-  } else if (track.biome === 'roof') {
-    for (let i = 0; i < 6; i++) {
-      g.rect(200 + i * 140, 250, 100, 60).fill({ color: 0x304060, alpha: 0.5 });
-    }
-  } else if (track.biome === 'garden') {
-    g.circle(600, 400, 200).fill({ color: 0x208040, alpha: 0.15 });
-  } else if (track.biome === 'living') {
-    const pulse = 0.3 + 0.2 * Math.sin(Date.now() * 0.004);
-    g.roundRect(400, 300, 400, 200, 20).fill({ color: 0xff40ff, alpha: pulse * 0.15 });
-  } else if (track.biome === 'city') {
-    for (let i = 0; i < 8; i++) {
-      g.rect(150 + i * 120, 500, 40, 80 + (i % 3) * 30).fill({ color: 0x203040, alpha: 0.6 });
-    }
-  }
-}
-
-function drawTrackSurface(g: Graphics, track: TrackDef): void {
-  const samples = getTrackSamples();
-  const hw = track.trackWidth * 0.5;
-  for (let i = 0; i < samples.length - 1; i++) {
-    const a = samples[i]!;
-    const b = samples[i + 1]!;
-    const ang = Math.atan2(b.y - a.y, b.x - a.x);
-    const nx = -Math.sin(ang);
-    const ny = Math.cos(ang);
-    g.moveTo(a.x + nx * hw, a.y + ny * hw);
-    g.lineTo(b.x + nx * hw, b.y + ny * hw);
-    g.lineTo(b.x - nx * hw, b.y - ny * hw);
-    g.lineTo(a.x - nx * hw, a.y - ny * hw);
-    g.closePath();
-  }
-  g.fill({ color: 0x8898a8, alpha: 0.35 });
-  g.stroke({ color: track.accentColor, width: 3, alpha: 0.55 });
-
-  const s0 = samples[0]!;
-  g.rect(s0.x - 40, s0.y - 8, 80, 16).fill({ color: 0xffffff, alpha: 0.7 });
-}
-
 function drawSlipZones(g: Graphics, track: TrackDef): void {
   for (const z of track.slipZones) {
-    g.roundRect(z.x, z.y, z.w, z.h, 8).fill({ color: 0x60c0ff, alpha: 0.2 });
-  }
-}
-
-function drawBoostPads(g: Graphics, track: TrackDef): void {
-  for (const pad of track.boostPads) {
-    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.008);
-    g.roundRect(pad.x, pad.y, pad.w, pad.h, 6).fill({ color: 0xffd040, alpha: 0.25 + pulse * 0.2 });
-    g.roundRect(pad.x, pad.y, pad.w, pad.h, 6).stroke({ color: 0xffa020, width: 2, alpha: 0.6 });
+    g.roundRect(z.x, z.y, z.w, z.h, 8).fill({ color: 0x60c0ff, alpha: 0.22 });
   }
 }
 
@@ -107,7 +256,7 @@ function drawGates(g: Graphics, track: TrackDef, state: RaceState): void {
     const open = state.gateOpen[gate.id];
     g.rect(gate.x, gate.y, gate.w, gate.h).fill({
       color: open ? 0x40ff80 : 0xff4040,
-      alpha: open ? 0.2 : 0.55,
+      alpha: open ? 0.25 : 0.6,
     });
   }
 }
@@ -115,111 +264,38 @@ function drawGates(g: Graphics, track: TrackDef, state: RaceState): void {
 function drawCameraTraps(g: Graphics, track: TrackDef, t: number): void {
   for (const cam of track.cameraTraps) {
     const pulse = 0.4 + 0.3 * Math.sin(t * 0.01);
-    g.circle(cam.x, cam.y, cam.radius).stroke({ color: 0xff4080, width: 1, alpha: pulse * 0.4 });
-    g.circle(cam.x, cam.y, 8).fill({ color: 0xff4080, alpha: 0.8 });
-  }
-}
-
-function drawTokens(g: Graphics, state: RaceState): void {
-  for (const t of state.tokens) {
-    if (!t.active) continue;
-    g.star(t.x, t.y, 5, 8, 4, Date.now() * 0.002).fill({ color: 0xffd040, alpha: 0.9 });
-  }
-}
-
-function drawMines(g: Graphics, state: RaceState): void {
-  for (const m of state.mines) {
-    g.circle(m.x, m.y, 8).fill({ color: 0xff2020, alpha: 0.9 });
-    g.circle(m.x, m.y, 14).stroke({ color: 0xff8080, width: 1, alpha: 0.5 });
+    g.circle(cam.x, cam.y, cam.radius).stroke({ color: 0xff4080, width: 1, alpha: pulse * 0.35 });
   }
 }
 
 function drawFoam(g: Graphics, state: RaceState): void {
   for (const f of state.foamPatches) {
-    g.circle(f.x, f.y, 24).fill({ color: 0xffffff, alpha: 0.25 });
+    g.circle(f.x, f.y, 26).fill({ color: 0xffffff, alpha: 0.28 });
   }
 }
 
-function drawHazards(g: Graphics, state: RaceState, track: TrackDef, t: number): void {
-  for (const h of state.hazards) {
-    const def = track.hazards.find((d) => d.id === h.id);
-    const pulse = 0.6 + 0.4 * Math.sin(t * 0.012);
-    if (h.kind === 'robot_vacuum' || h.kind === 'robot_mower') {
-      g.circle(h.x, h.y, 22).fill({ color: 0x304050, alpha: 0.9 });
-      g.circle(h.x, h.y, 16).fill({
-        color: h.kind === 'robot_mower' ? 0x40e040 : 0x40a0c0,
-        alpha: pulse,
-      });
-    } else if (h.kind === 'drone_drop') {
-      g.moveTo(h.x, h.y - 16);
-      g.lineTo(h.x + 14, h.y + 10);
-      g.lineTo(h.x - 14, h.y + 10);
-      g.closePath();
-      g.fill({ color: 0x8090ff, alpha: 0.85 });
-    } else if (h.kind === 'conveyor') {
-      g.rect(h.x - 30, h.y - 12, 60, 24).fill({ color: 0x606880, alpha: 0.7 });
-    }
-    if (def && h.kind !== 'conveyor') {
-      g.moveTo(def.x1, def.y1);
-      g.lineTo(def.x2, def.y2);
-      g.stroke({ color: 0x40c0ff, width: 1, alpha: 0.2 });
-    }
+function drawParticles(g: Graphics, system: ParticleSystem): void {
+  for (const p of system.all()) {
+    const a = p.alpha * (p.life / p.maxLife);
+    g.circle(p.x, p.y, p.size).fill({ color: p.color, alpha: a });
   }
 }
 
-function drawPickups(g: Graphics, state: RaceState): void {
-  for (const p of state.pickups) {
-    if (!p.active) continue;
-    const bob = Math.sin(Date.now() * 0.006 + p.x) * 4;
-    g.circle(p.x, p.y + bob, 12).fill({ color: 0xff40a0, alpha: 0.85 });
-    g.circle(p.x, p.y + bob, 18).stroke({ color: 0xffffff, width: 1, alpha: 0.5 });
-  }
-}
-
-function drawRacers(g: Graphics, labels: Container, state: RaceState): void {
+function drawLabels(labels: Container, state: RaceState): void {
   for (const r of state.racers) {
     if (r.eliminated) continue;
-    const cfg = vehicleById(r.vehicleId);
-    const cos = Math.cos(r.angle);
-    const sin = Math.sin(r.angle);
-    const rot = (lx: number, ly: number): { x: number; y: number } => ({
-      x: r.x + lx * cos - ly * sin,
-      y: r.y + lx * sin + ly * cos,
-    });
-
-    if (r.shieldMs > 0) {
-      g.circle(r.x, r.y, 22).stroke({ color: 0x80ffff, width: 3, alpha: 0.7 });
-    }
-    if (r.jamBlockerMs > 0) {
-      g.circle(r.x, r.y, 26).stroke({ color: 0x80ff80, width: 1, alpha: 0.5 });
-    }
-    if (r.cameraCloakMs > 0) {
-      g.circle(r.x, r.y, 20).stroke({ color: 0xa040ff, width: 2, alpha: 0.4 });
-    }
-    if (r.boostMs > 0 || r.overchargeMs > 0) {
-      const tail = rot(-28, 0);
-      const mid = rot(-18, 0);
-      g.moveTo(mid.x, mid.y);
-      g.lineTo(tail.x, tail.y);
-      g.stroke({ color: r.overchargeMs > 0 ? 0xff4040 : 0xff8040, width: 4, alpha: 0.7 });
-    }
-
-    const body = [rot(-10, -6), rot(10, -6), rot(10, 6), rot(-10, 6)];
-    g.poly(body.flatMap((p) => [p.x, p.y])).fill(cfg.color);
-    const nose = [rot(10, -4), rot(18, 0), rot(10, 4)];
-    g.poly(nose.flatMap((p) => [p.x, p.y])).fill(0xffffff);
-
-    if (r.isPlayer) {
-      g.circle(r.x, r.y, 20).stroke({ color: 0xffffff, width: 2, alpha: 0.8 });
-    }
-
     const label = new Text({
       text: r.isPlayer ? 'YOU' : `#${r.position}`,
-      style: { fontFamily: 'Orbitron', fontSize: 9, fill: 0xffffff },
+      style: {
+        fontFamily: 'Orbitron',
+        fontSize: 10,
+        fill: r.isPlayer ? 0xffffff : 0xc0d0e0,
+        dropShadow: { color: 0x000000, blur: 2, distance: 1, alpha: 0.8 },
+      },
     });
     label.anchor.set(0.5, 1);
     label.x = r.x;
-    label.y = r.y - 22;
+    label.y = r.y - 30;
     labels.addChild(label);
   }
 }

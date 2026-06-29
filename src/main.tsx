@@ -12,6 +12,8 @@ import { heldLabel } from './powerups/runtime.js';
 import { Hud } from './ui/hud.js';
 import { useHudStore } from './ui/hud-store.js';
 import { applyRaceResult } from './meta/profile.js';
+import { GameAudio, RaceAudioController } from './audio/game-audio.js';
+import { bindGameAudio, unbindGameAudio } from './audio/audio-bind.js';
 import './index.css';
 
 function syncHud(state: RaceState, trackName: string, modeName: string, checkpointTotal: number): void {
@@ -51,6 +53,7 @@ function App(): JSX.Element {
   const selectedTrack = useHudStore((s) => s.snapshot.selectedTrackId);
   const selectedMode = useHudStore((s) => s.snapshot.selectedModeId);
   const phase = useHudStore((s) => s.snapshot.phase);
+  const assetsReady = useHudStore((s) => s.snapshot.assetsReady);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,15 +64,27 @@ function App(): JSX.Element {
 
     const pixi = new PixiApp();
     const input = inputRef.current;
+    const audio = new GameAudio();
+    bindGameAudio(audio);
+    const raceAudio = new RaceAudioController(audio);
     input.attach();
     let renderer: RaceRenderer | null = null;
 
-    void pixi.init(host).then(() => {
+    const unlockAudio = (): void => {
+      audio.unlock();
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+
+    void pixi.init(host).then(async () => {
       if (cancelled) {
         pixi.destroy();
         return;
       }
-      renderer = new RaceRenderer(pixi.world);
+      renderer = await RaceRenderer.create(pixi);
+      useHudStore.getState().setSnapshot({ assetsReady: true });
       pixi.resize();
       ro = new ResizeObserver(() => pixi.resize());
       ro.observe(host);
@@ -82,6 +97,7 @@ function App(): JSX.Element {
           if (!state || state.phase === 'menu') return;
           const active = state.phase === 'racing' || state.phase === 'countdown';
           tickRace(state, track, input.poll(active), dtMs);
+          raceAudio.tick(state, dtMs);
           const modeCfg = gameModeById(state.mode);
 
           if (state.phase === 'finished' && !finishedRef.current) {
@@ -116,6 +132,10 @@ function App(): JSX.Element {
       loop?.stop();
       ro?.disconnect();
       input.detach();
+      audio.destroy();
+      unbindGameAudio();
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
       pixi.destroy();
     };
   }, []);
@@ -138,6 +158,17 @@ function App(): JSX.Element {
   return (
     <div className="game-shell relative flex h-full w-full flex-col overflow-hidden">
       <div ref={hostRef} className="relative min-h-0 flex-1" />
+      {!assetsReady && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#060a14]/90 backdrop-blur-sm">
+          <div className="text-center">
+            <p className="font-display text-sm tracking-[0.35em] text-cyan-400">MICRO CIRCUIT</p>
+            <p className="mt-2 text-xs text-white/60">Ładowanie grafik…</p>
+            <div className="mx-auto mt-4 h-1 w-32 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full w-1/2 animate-pulse rounded-full bg-cyan-400/80" />
+            </div>
+          </div>
+        </div>
+      )}
       <Hud
         onStart={startRace}
         onRestart={startRace}

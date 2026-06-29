@@ -7,20 +7,28 @@ export class InputManager {
   private usePowerUp = false;
   private powerUpQueued = false;
   private attached = false;
+  private steerSmooth = 0;
 
   attach(): void {
     if (this.attached) return;
     this.attached = true;
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
+    window.addEventListener('blur', this.onBlur);
   }
 
   detach(): void {
     if (!this.attached) return;
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener('blur', this.onBlur);
     this.attached = false;
   }
+
+  private onBlur = (): void => {
+    this.keys.clear();
+    this.boost = false;
+  };
 
   private onKeyDown = (e: KeyboardEvent): void => {
     this.keys.add(e.code);
@@ -28,7 +36,7 @@ export class InputManager {
       e.preventDefault();
       this.boost = true;
     }
-    if (e.code === 'KeyE' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+    if (e.code === 'KeyE') {
       this.powerUpQueued = true;
     }
   };
@@ -40,16 +48,17 @@ export class InputManager {
 
   poll(active: boolean): PlayerInput {
     if (!active) {
-      return { steer: 0, throttle: 0, boost: false, usePowerUp: false };
+      this.steerSmooth = 0;
+      return { steer: 0, throttle: 0, brake: false, handbrake: false, boost: false, usePowerUp: false };
     }
 
-    let steer = 0;
-    if (this.keys.has('ArrowLeft') || this.keys.has('KeyA')) steer -= 1;
-    if (this.keys.has('ArrowRight') || this.keys.has('KeyD')) steer += 1;
+    let steerTarget = 0;
+    if (this.keys.has('ArrowLeft') || this.keys.has('KeyA')) steerTarget -= 1;
+    if (this.keys.has('ArrowRight') || this.keys.has('KeyD')) steerTarget += 1;
 
-    let throttle = 1;
-    if (this.keys.has('ArrowDown') || this.keys.has('KeyS')) throttle = 0.35;
-    if (this.keys.has('ArrowUp') || this.keys.has('KeyW')) throttle = 1;
+    this.steerSmooth += (steerTarget - this.steerSmooth) * 0.32;
+    const brake = this.keys.has('ArrowDown') || this.keys.has('KeyS');
+    const handbrake = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
 
     this.usePowerUp = this.powerUpQueued;
     this.powerUpQueued = false;
@@ -58,17 +67,22 @@ export class InputManager {
     if (touch) {
       const t = touch.poll();
       touch.clearPower();
+      const touchSteer = Math.abs(t.steer) > 0.08 ? t.steer : this.steerSmooth;
       return {
-        steer: Math.abs(steer) > 0.1 ? steer : t.steer,
-        throttle,
+        steer: touchSteer,
+        throttle: 1,
+        brake: t.brake,
+        handbrake: t.handbrake,
         boost: this.boost || t.boost,
         usePowerUp: this.usePowerUp || t.usePowerUp,
       };
     }
 
     return {
-      steer,
-      throttle,
+      steer: this.steerSmooth,
+      throttle: 1,
+      brake,
+      handbrake,
       boost: this.boost,
       usePowerUp: this.usePowerUp,
     };

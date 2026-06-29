@@ -3,15 +3,19 @@ import { WORLD_H, WORLD_W } from '../core/types.js';
 
 export class PixiApp {
   stage!: Container;
+  viewport!: Container;
+  camera!: Container;
+  /** @deprecated use camera */
   world!: Container;
   private app!: Application;
   private host: HTMLElement | null = null;
+  private baseScale = 1;
 
   async init(host: HTMLElement): Promise<void> {
     this.host = host;
     this.app = new Application();
     await this.app.init({
-      background: 0x0a1020,
+      background: 0x060a14,
       resizeTo: host,
       antialias: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
@@ -19,18 +23,33 @@ export class PixiApp {
     });
     host.appendChild(this.app.canvas);
     this.stage = this.app.stage;
-    this.world = new Container();
-    this.stage.addChild(this.world);
+
+    this.viewport = new Container();
+    this.camera = new Container();
+    this.viewport.addChild(this.camera);
+    this.stage.addChild(this.viewport);
+    this.world = this.camera;
   }
 
   resize(): void {
     if (!this.host) return;
     const w = this.host.clientWidth;
     const h = this.host.clientHeight;
-    const scale = Math.min(w / WORLD_W, h / WORLD_H) * 0.96;
-    this.world.scale.set(scale);
-    this.world.x = (w - WORLD_W * scale) / 2;
-    this.world.y = (h - WORLD_H * scale) / 2;
+    this.baseScale = Math.min(w / WORLD_W, h / WORLD_H) * 0.98;
+    this.applyViewportTransform();
+  }
+
+  applyViewportTransform(): void {
+    if (!this.host) return;
+    const w = this.host.clientWidth;
+    const h = this.host.clientHeight;
+    this.viewport.scale.set(this.baseScale);
+    this.viewport.x = w * 0.5;
+    this.viewport.y = h * 0.5;
+  }
+
+  getBaseScale(): number {
+    return this.baseScale;
   }
 
   destroy(): void {

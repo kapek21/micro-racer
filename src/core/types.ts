@@ -247,6 +247,8 @@ export interface RaceState {
 export interface PlayerInput {
   steer: number;
   throttle: number;
+  brake: boolean;
+  handbrake: boolean;
   boost: boolean;
   usePowerUp: boolean;
 }
