@@ -1,12 +1,15 @@
 import { Container, Graphics, Text } from 'pixi.js';
-import type { RaceState, TrackDef } from '../core/types.js';
+import type { RaceState, RacerState, TrackDef } from '../core/types.js';
 import { getLateralSpeed } from '../physics/vehicle-controller.js';
 import { getTrackSamples } from '../race/race-sim.js';
 import { leaderRacer } from '../race/mode-logic.js';
+import { powerUpVisual, rarityGlowScale, rarityPulse } from '../config/powerup-visuals.js';
 import type { SpriteAtlas } from './sprite-atlas.js';
 import { loadSpriteAtlas } from './asset-loader.js';
 import { ParticleSystem } from './particle-system.js';
 import { RaceCamera } from './race-camera.js';
+import { syncBiomeDecorations } from './biome-decorations.js';
+import { drawAtmosphere, tickAtmosphereParticles } from './atmosphere.js';
 import { drawBiome, drawTrack } from './track-draw.js';
 import { drawVehicleFx } from './vehicle-draw.js';
 import { SpritePool } from './sprite-pool.js';
@@ -26,8 +29,11 @@ export class RaceRenderer {
     decals: Graphics;
     fx: Graphics;
     particles: Graphics;
+    atmosphere: Graphics;
   };
+  private readonly biomeLayer: Container;
   private readonly spriteLayer: Container;
+  private readonly biomeDecos: SpritePool;
   private readonly shadows: SpritePool;
   private readonly entities: SpritePool;
   private readonly labels: Container;
@@ -36,6 +42,9 @@ export class RaceRenderer {
   private readonly camera = new RaceCamera();
   private readonly pixi: PixiApp;
   private t = 0;
+  private prevActivePickups = new Set<string>();
+  private prevPlayerSpeed = 0;
+  private prevPlayerEmpSlow = 0;
 
   private constructor(pixi: PixiApp, atlas: SpriteAtlas) {
     this.pixi = pixi;
@@ -46,18 +55,23 @@ export class RaceRenderer {
       decals: new Graphics(),
       fx: new Graphics(),
       particles: new Graphics(),
+      atmosphere: new Graphics(),
     };
+    this.biomeLayer = new Container();
     this.spriteLayer = new Container();
+    this.biomeDecos = new SpritePool(this.biomeLayer);
     this.shadows = new SpritePool(this.spriteLayer);
     this.entities = new SpritePool(this.spriteLayer);
     this.labels = new Container();
 
     pixi.camera.addChild(this.layers.bg);
+    pixi.camera.addChild(this.biomeLayer);
     pixi.camera.addChild(this.layers.track);
     pixi.camera.addChild(this.spriteLayer);
     pixi.camera.addChild(this.layers.decals);
     pixi.camera.addChild(this.layers.fx);
     pixi.camera.addChild(this.layers.particles);
+    pixi.camera.addChild(this.layers.atmosphere);
     pixi.camera.addChild(this.labels);
   }
 
@@ -69,6 +83,7 @@ export class RaceRenderer {
   sync(state: RaceState, track: TrackDef, dtMs: number): void {
     this.t += dtMs;
     this.particles.tick(dtMs);
+    tickAtmosphereParticles(this.particles, track, this.t);
 
     const player = state.racers.find((r) => r.isPlayer);
     const follow = state.mode === 'elimination_camera' ? leaderRacer(state.racers) : player;
@@ -82,27 +97,47 @@ export class RaceRenderer {
         state.mode === 'elimination_camera' ? 'leader' : 'player',
       );
     }
+
+    if (player) {
+      if (player.empSlowMs > this.prevPlayerEmpSlow + 200) {
+        this.camera.addShake(5, 320);
+      }
+      if (
+        this.prevPlayerSpeed > 180 &&
+        player.speed < this.prevPlayerSpeed - 90 &&
+        player.shieldMs <= 0
+      ) {
+        this.camera.addShake(4, 260);
+      }
+      this.prevPlayerEmpSlow = player.empSlowMs;
+      this.prevPlayerSpeed = player.speed;
+    }
+
     this.camera.apply(this.pixi.camera);
     this.pixi.applyViewportTransform();
 
     for (const r of state.racers) {
       if (r.eliminated) continue;
-      const intensity = Math.min(1, r.speed / 350) * (r.boostMs > 0 ? 1.5 : 1);
+      const intensity = Math.min(1, r.speed / 350) * (r.boostMs > 0 || r.overchargeMs > 0 ? 1.6 : 1);
       if (r.speed > 40) this.particles.emitExhaust(r.x, r.y, r.angle, intensity);
       if (getLateralSpeed(r) > 70 && r.speed > 100) this.particles.emitSkid(r.x, r.y);
     }
+
+    this.detectPickupCollects(state, player);
 
     this.layers.bg.clear();
     this.layers.track.clear();
     this.layers.decals.clear();
     this.layers.fx.clear();
     this.layers.particles.clear();
+    this.layers.atmosphere.clear();
     this.labels.removeChildren();
 
     const active = new Set<string>();
 
     drawBiome(this.layers.bg, track, this.t);
-    drawTrack(this.layers.track, track, getTrackSamples(), this.atlas);
+    syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active);
+    drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t);
 
     drawSlipZones(this.layers.decals, track);
     drawGates(this.layers.decals, track, state);
@@ -158,19 +193,26 @@ export class RaceRenderer {
 
     for (const p of state.pickups) {
       if (!p.active) continue;
+      const vis = powerUpVisual(p.powerUpId);
       const bob = Math.sin(this.t * 0.007 + p.x) * 6;
-      const glowFrame = Math.floor(this.t * 0.005) % 2 === 0;
+      const rPulse = rarityPulse(vis.rarity, this.t);
       const id = `pick_${p.spawnId}`;
       active.add(id);
+      const tex = this.atlas.powerups[p.powerUpId] ?? this.atlas.pickup;
       this.entities.set(
         id,
-        glowFrame ? this.atlas.pickupGlow : this.atlas.pickup,
+        tex,
         p.x,
         p.y + bob,
         Math.sin(this.t * 0.002 + p.y) * 0.08,
-        PICKUP_SCALE * (1 + pulse * 0.06),
+        PICKUP_SCALE * (1 + pulse * 0.06) * rPulse,
         {
-          glow: { texture: this.atlas.glow, alpha: 0.35 + pulse * 0.3, scale: 1.5 },
+          glow: {
+            texture: this.atlas.glow,
+            alpha: (0.35 + pulse * 0.3) * rPulse,
+            scale: rarityGlowScale(vis.rarity),
+          },
+          tint: vis.color,
         },
       );
     }
@@ -213,10 +255,10 @@ export class RaceRenderer {
       active.add(id);
       const tex = this.atlas.vehicles[r.vehicleId] ?? this.atlas.vehicles['volt_mini_gt']!;
       const lean = Math.sin(r.angle) * 0.04 * Math.min(1, r.speed / 200);
-      const boostScale = r.boostMs > 0 ? 1.04 : 1;
+      const boostScale = r.boostMs > 0 || r.overchargeMs > 0 ? 1.04 : 1;
       this.entities.set(id, tex, r.x, r.y, r.angle + Math.PI / 2 + lean, VEHICLE_SCALE * boostScale, {
         glow:
-          r.boostMs > 0
+          r.boostMs > 0 || r.overchargeMs > 0
             ? { texture: this.atlas.glow, alpha: 0.45 + pulseFast * 0.2, scale: 1.6 }
             : r.isPlayer
               ? { texture: this.atlas.glow, alpha: 0.12 + pulse * 0.08, scale: 1.35 }
@@ -227,12 +269,14 @@ export class RaceRenderer {
 
     for (const r of state.racers) {
       if (r.eliminated) continue;
-      drawVehicleFx(this.layers.fx, r, 0);
+      drawVehicleFx(this.layers.fx, r, 0, state.racers, this.t);
     }
 
     drawParticles(this.layers.particles, this.particles);
+    drawAtmosphere(this.layers.atmosphere, track, this.t);
     drawLabels(this.labels, state);
 
+    this.biomeDecos.hideExcept(active);
     this.shadows.hideExcept(active);
     this.entities.hideExcept(active);
 
@@ -242,6 +286,25 @@ export class RaceRenderer {
         this.layers.fx.circle(leader.x, leader.y, 320).stroke({ color: 0xffffff, width: 2, alpha: 0.12 });
       }
     }
+  }
+
+  private detectPickupCollects(state: RaceState, player: RacerState | undefined): void {
+    const current = new Set<string>();
+    for (const p of state.pickups) {
+      if (p.active) current.add(p.spawnId);
+    }
+    for (const spawnId of this.prevActivePickups) {
+      if (current.has(spawnId)) continue;
+      const p = state.pickups.find((x) => x.spawnId === spawnId);
+      if (!p || !player) continue;
+      const dist = Math.hypot(p.x - player.x, p.y - player.y);
+      if (dist < 80) {
+        const vis = powerUpVisual(p.powerUpId);
+        this.particles.emitPickupCollect(p.x, p.y, vis.color);
+        this.camera.addShake(2, 180);
+      }
+    }
+    this.prevActivePickups = current;
   }
 }
 
@@ -277,7 +340,15 @@ function drawFoam(g: Graphics, state: RaceState): void {
 function drawParticles(g: Graphics, system: ParticleSystem): void {
   for (const p of system.all()) {
     const a = p.alpha * (p.life / p.maxLife);
-    g.circle(p.x, p.y, p.size).fill({ color: p.color, alpha: a });
+    if (p.kind === 'ring') {
+      g.circle(p.x, p.y, p.size).stroke({ color: p.color, width: 2, alpha: a });
+    } else if (p.kind === 'streak') {
+      g.moveTo(p.x, p.y);
+      g.lineTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04);
+      g.stroke({ color: p.color, width: Math.max(1, p.size * 0.5), alpha: a });
+    } else {
+      g.circle(p.x, p.y, p.size).fill({ color: p.color, alpha: a });
+    }
   }
 }
 

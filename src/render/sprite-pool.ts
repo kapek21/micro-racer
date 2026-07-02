@@ -38,7 +38,7 @@ export class SpritePool {
     sp.scale.set(scale);
     sp.visible = true;
     sp.alpha = fx?.alpha ?? 1;
-    if (fx?.tint !== undefined) sp.tint = fx.tint;
+    sp.tint = fx?.tint ?? 0xffffff;
 
     const glowSpec = fx?.glow;
     let glow = this.glows.get(id);

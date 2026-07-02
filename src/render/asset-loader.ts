@@ -1,4 +1,5 @@
 import { Texture } from 'pixi.js';
+import { BIOME_SPRITE_URLS } from '../config/asset-paths.js';
 import { VEHICLES } from '../config/vehicles.js';
 import { createSpriteAtlas, type SpriteAtlas } from './sprite-atlas.js';
 
@@ -80,6 +81,20 @@ const ASSET = {
   boostPadGlow: '/assets/sprites/pickups/boost_pad_glow.png',
 } as const;
 
+async function loadBiomes(): Promise<Record<string, Texture>> {
+  const biomes: Record<string, Texture> = {};
+  await Promise.all(
+    Object.entries(BIOME_SPRITE_URLS).map(async ([key, url]) => {
+      try {
+        biomes[key] = await loadKeyedTexture(url, 160, 160);
+      } catch {
+        console.warn(`[assets] biome sprite missing: ${key}`);
+      }
+    }),
+  );
+  return biomes;
+}
+
 export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
   try {
     const [
@@ -129,6 +144,8 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
                 : procedural.vehicles[v.id]!;
     }
 
+    const biomes = await loadBiomes();
+
     return {
       ...procedural,
       vehicles,
@@ -142,6 +159,7 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
       mine,
       boostPad,
       boostPadGlow,
+      biomes,
     };
   } catch (err) {
     console.warn('[assets] PNG load failed, using procedural sprites', err);

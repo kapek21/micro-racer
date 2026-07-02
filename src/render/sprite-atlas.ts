@@ -1,6 +1,8 @@
 import { Texture } from 'pixi.js';
 import type { VehicleClass } from '../core/types.js';
 import { VEHICLES } from '../config/vehicles.js';
+import { POWERUPS } from '../config/powerups.js';
+import { powerUpVisual } from '../config/powerup-visuals.js';
 
 export interface SpriteAtlas {
   asphalt: Texture;
@@ -18,12 +20,20 @@ export interface SpriteAtlas {
   boostPad: Texture;
   boostPadGlow: Texture;
   conveyor: Texture;
+  biomes: Record<string, Texture>;
+  powerups: Record<string, Texture>;
 }
 
 export function createSpriteAtlas(): SpriteAtlas {
   const vehicles: Record<string, Texture> = {};
   for (const v of VEHICLES) {
     vehicles[v.id] = canvasTex((ctx, w, h) => drawVehicleSprite(ctx, w, h, v.class, v.color, v.accent), 80, 48);
+  }
+
+  const powerups: Record<string, Texture> = {};
+  for (const p of POWERUPS) {
+    const vis = powerUpVisual(p.id);
+    powerups[p.id] = canvasTex((ctx, w, h) => drawPowerUpIcon(ctx, w, h, vis), 56, 56);
   }
 
   return {
@@ -42,6 +52,8 @@ export function createSpriteAtlas(): SpriteAtlas {
     boostPad: canvasTex(drawBoostPad, 64, 32),
     boostPadGlow: canvasTex(drawBoostPadGlow, 68, 36),
     conveyor: canvasTex(drawConveyor, 64, 28),
+    biomes: {},
+    powerups,
   };
 }
 
@@ -334,6 +346,46 @@ function drawConveyor(ctx: CanvasRenderingContext2D, w: number, h: number): void
   ctx.fillStyle = '#707880';
   for (let i = 0; i < 6; i++) {
     ctx.fillRect(i * (w / 6) + 2, 4, w / 6 - 4, h - 8);
+  }
+}
+
+function drawPowerUpIcon(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  vis: ReturnType<typeof powerUpVisual>,
+): void {
+  const cx = w / 2;
+  const cy = h / 2;
+  const body = hex(vis.color);
+  const glow = hex(vis.glow);
+  const ring = hex(vis.ring);
+
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.48);
+  g.addColorStop(0, glow);
+  g.addColorStop(0.55, body);
+  g.addColorStop(1, ring);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.roundRect(w * 0.12, h * 0.12, w * 0.76, h * 0.76, 10);
+  ctx.fill();
+
+  ctx.strokeStyle = glow;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px Orbitron,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(vis.symbol, cx, cy + 1);
+
+  if (vis.rarity === 'epic' || vis.rarity === 'rare') {
+    ctx.strokeStyle = vis.rarity === 'epic' ? '#ffd040' : '#c0d0ff';
+    ctx.lineWidth = vis.rarity === 'epic' ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.roundRect(w * 0.06, h * 0.06, w * 0.88, h * 0.88, 12);
+    ctx.stroke();
   }
 }
 

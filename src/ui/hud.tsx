@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode, useState } from 'react';
 import { isGameMuted, toggleGameMute } from '../audio/audio-bind.js';
 import { useHudStore } from './hud-store.js';
+import { VEHICLE_SPRITE_URLS } from '../config/asset-paths.js';
 import { VEHICLES } from '../config/vehicles.js';
 import { GAME_MODES } from '../config/game-modes.js';
 import { TRACKS } from '../config/tracks/index.js';
@@ -61,6 +62,14 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
                       className={`vehicle-btn ${snap.selectedVehicleId === v.id ? 'vehicle-btn-on' : ''}`}
                       onClick={() => setSnapshot({ selectedVehicleId: v.id })}
                     >
+                      <div className="vehicle-preview">
+                        <img
+                          src={VEHICLE_SPRITE_URLS[v.id]}
+                          alt=""
+                          className="vehicle-preview-img"
+                          draggable={false}
+                        />
+                      </div>
                       <span className="font-display text-[10px]">{v.namePl}</span>
                       <span className="text-white/50">{v.class}</span>
                     </button>
