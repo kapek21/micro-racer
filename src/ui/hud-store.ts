@@ -17,6 +17,8 @@ export interface HudSnapshot {
   boostActive: boolean;
   shieldActive: boolean;
   heldPowerUp: string;
+  heldPowerUpSymbol: string;
+  heldPowerUpCharges: number;
   coinsEarned: number;
   stylePoints: number;
   tokensCollected: number;
@@ -54,6 +56,8 @@ export const useHudStore = create<HudStore>((set) => ({
     boostActive: false,
     shieldActive: false,
     heldPowerUp: '',
+    heldPowerUpSymbol: '',
+    heldPowerUpCharges: 0,
     coinsEarned: 0,
     stylePoints: 0,
     tokensCollected: 0,

@@ -144,7 +144,7 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
                 : procedural.vehicles[v.id]!;
     }
 
-    const biomes = await loadBiomes();
+    const biomes = { ...procedural.biomes, ...(await loadBiomes()) };
 
     return {
       ...procedural,

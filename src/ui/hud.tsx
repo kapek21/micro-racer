@@ -8,6 +8,19 @@ import { TRACKS } from '../config/tracks/index.js';
 import { COSMETICS, buyCosmetic, isTrackUnlocked } from '../meta/profile.js';
 import { TouchControls } from './touch-controls.js';
 
+const BIOME_ACCENTS: Record<string, string> = {
+  kitchen: '#40c0ff',
+  roof: '#ffc040',
+  garden: '#40e878',
+  garage: '#ffa030',
+  security: '#ff4080',
+  warehouse: '#80a0ff',
+  living: '#ff40ff',
+  balcony: '#60c0e0',
+  desk: '#a0a0ff',
+  city: '#40ff80',
+};
+
 interface HudProps {
   onStart(): void;
   onRestart(): void;
@@ -89,7 +102,13 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
                         className={`track-btn w-full ${snap.selectedTrackId === t.id ? 'track-btn-on' : ''} ${locked ? 'opacity-40' : ''}`}
                         onClick={() => setSnapshot({ selectedTrackId: t.id })}
                       >
-                        <span>{t.namePl}</span>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="biome-dot"
+                            style={{ background: BIOME_ACCENTS[t.biome] ?? '#40c0ff' }}
+                          />
+                          <span>{t.namePl}</span>
+                        </span>
                         <span className="text-white/40">{locked ? '🔒' : t.biome}</span>
                       </button>
                     );
@@ -225,7 +244,14 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
           <div className="text-white/40">{snap.trackLabel} · {snap.modeLabel}</div>
           {snap.boostActive && <span className="text-orange-400">BOOST </span>}
           {snap.shieldActive && <span className="text-cyan-300">SHIELD </span>}
-          {snap.heldPowerUp && <span className="text-pink-400">PWR: {snap.heldPowerUp}</span>}
+          {snap.heldPowerUp && (
+            <span className="pwr-badge" title={snap.heldPowerUp}>
+              <span className="pwr-symbol">{snap.heldPowerUpSymbol}</span>
+              {snap.heldPowerUpCharges > 1 && (
+                <span className="pwr-charges">×{snap.heldPowerUpCharges}</span>
+              )}
+            </span>
+          )}
           {snap.eliminationStrikes > 0 && (
             <span className="text-red-400"> POZA KADREM: {snap.eliminationStrikes}</span>
           )}

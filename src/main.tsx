@@ -9,6 +9,7 @@ import { RaceRenderer } from './render/race-renderer.js';
 import { createRaceState, playerRacer, tickRace } from './race/race-sim.js';
 import type { RaceState } from './core/types.js';
 import { heldLabel } from './powerups/runtime.js';
+import { powerUpVisual } from './config/powerup-visuals.js';
 import { Hud } from './ui/hud.js';
 import { useHudStore } from './ui/hud-store.js';
 import { applyRaceResult } from './meta/profile.js';
@@ -31,6 +32,8 @@ function syncHud(state: RaceState, trackName: string, modeName: string, checkpoi
     boostActive: player.boostMs > 0,
     shieldActive: player.shieldMs > 0,
     heldPowerUp: heldLabel(player.heldPowerUp),
+    heldPowerUpSymbol: player.heldPowerUp ? powerUpVisual(player.heldPowerUp.id).symbol : '',
+    heldPowerUpCharges: player.heldPowerUp?.charges ?? 0,
     coinsEarned: state.coinsEarned,
     stylePoints: state.stylePoints,
     tokensCollected: player.tokensCollected,

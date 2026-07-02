@@ -11,9 +11,12 @@ export function syncBiomeDecorations(
   track: TrackDef,
   t: number,
   active: Set<string>,
+  camera?: { x: number; y: number },
 ): void {
   const props = BIOME_PROPS[track.biome] ?? [];
   const pulse = 0.5 + 0.5 * Math.sin(t * 0.002);
+  const camX = camera?.x ?? 600;
+  const camY = camera?.y ?? 400;
 
   for (let i = 0; i < props.length; i++) {
     const p = props[i]!;
@@ -23,10 +26,14 @@ export function syncBiomeDecorations(
     const id = `biome_${track.biome}_${i}`;
     active.add(id);
 
-    let alpha = 1;
+    const depth = 0.015 + (p.scale ?? 1) * 0.008;
+    const px = p.x + (p.x - camX) * depth;
+    const py = p.y + (p.y - camY) * depth;
+
+    let alpha = 0.92;
     let scale = p.scale * DECO_SCALE;
     let rotation = p.rotation ?? 0;
-    let y = p.y;
+    let y = py;
     let glowAlpha = 0;
 
     switch (p.anim) {
@@ -47,7 +54,7 @@ export function syncBiomeDecorations(
         break;
     }
 
-    pool.set(id, tex, p.x, y, rotation, scale, {
+    pool.set(id, tex, px, y, rotation, scale, {
       alpha,
       glow:
         glowAlpha > 0

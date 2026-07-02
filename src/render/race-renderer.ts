@@ -136,7 +136,7 @@ export class RaceRenderer {
     const active = new Set<string>();
 
     drawBiome(this.layers.bg, track, this.t);
-    syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active);
+    syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active, this.camera.position);
     drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t);
 
     drawSlipZones(this.layers.decals, track);
@@ -325,6 +325,13 @@ function drawGimmickZones(g: Graphics, track: TrackDef, state: RaceState, t: num
   for (const cell of track.photocells ?? []) {
     g.rect(cell.x, cell.y, cell.w, cell.h).stroke({ color: 0xffa030, width: 1, alpha: 0.5 });
     g.rect(cell.x, cell.y, cell.w, cell.h).fill({ color: 0xffa030, alpha: 0.08 });
+  }
+  for (const sp of track.sprinklers ?? []) {
+    const active = state.gimmickState.flags[`sprinkler_${sp.id}`];
+    const slip = track.slipZones.find((z) => z.id === sp.slipId);
+    if (slip && active) {
+      g.roundRect(slip.x, slip.y, slip.w, slip.h, 8).fill({ color: 0x40a0ff, alpha: 0.35 + pulse * 0.15 });
+    }
   }
   for (const sig of track.trafficSignals ?? []) {
     const green = state.gimmickState.flags[`sig_${sig.id}`];

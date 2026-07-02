@@ -3,6 +3,7 @@ import type { VehicleClass } from '../core/types.js';
 import { VEHICLES } from '../config/vehicles.js';
 import { POWERUPS } from '../config/powerups.js';
 import { powerUpVisual } from '../config/powerup-visuals.js';
+import { createBiomeTextures } from './biome-sprites.js';
 
 export interface SpriteAtlas {
   asphalt: Texture;
@@ -52,7 +53,7 @@ export function createSpriteAtlas(): SpriteAtlas {
     boostPad: canvasTex(drawBoostPad, 64, 32),
     boostPadGlow: canvasTex(drawBoostPadGlow, 68, 36),
     conveyor: canvasTex(drawConveyor, 64, 28),
-    biomes: {},
+    biomes: createBiomeTextures(128),
     powerups,
   };
 }
