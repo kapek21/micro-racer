@@ -3,7 +3,7 @@ import { BIOME_PROPS } from '../config/biome-decorations.js';
 import type { SpriteAtlas } from './sprite-atlas.js';
 import { SpritePool } from './sprite-pool.js';
 
-const DECO_SCALE = 0.55;
+const DECO_SCALE = 0.68;
 
 export function syncBiomeDecorations(
   pool: SpritePool,
@@ -54,11 +54,20 @@ export function syncBiomeDecorations(
         break;
     }
 
+    if (glowAlpha <= 0 && (p.anim === 'pulse' || p.anim === 'flicker')) {
+      glowAlpha = 0.08 + pulse * 0.06;
+    }
+    const defaultGlow = glowAlpha <= 0 ? 0.06 + pulse * 0.04 : glowAlpha;
+
+    const sid = `biome_shadow_${track.biome}_${i}`;
+    active.add(sid);
+    pool.set(sid, atlas.shadow, px, y + 14 * scale, rotation, scale * 1.1, { alpha: alpha * 0.55 });
+
     pool.set(id, tex, px, y, rotation, scale, {
       alpha,
       glow:
-        glowAlpha > 0
-          ? { texture: atlas.glow, alpha: glowAlpha, scale: 1.5 }
+        defaultGlow > 0
+          ? { texture: atlas.glow, alpha: defaultGlow, scale: glowAlpha > 0 ? 1.5 : 1.25 }
           : undefined,
     });
   }

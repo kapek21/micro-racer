@@ -86,7 +86,7 @@ async function loadBiomes(): Promise<Record<string, Texture>> {
   await Promise.all(
     Object.entries(BIOME_SPRITE_URLS).map(async ([key, url]) => {
       try {
-        biomes[key] = await loadKeyedTexture(url, 160, 160);
+        biomes[key] = await loadKeyedTexture(url, 192, 192);
       } catch {
         console.warn(`[assets] biome sprite missing: ${key}`);
       }

@@ -53,7 +53,7 @@ export function createSpriteAtlas(): SpriteAtlas {
     boostPad: canvasTex(drawBoostPad, 64, 32),
     boostPadGlow: canvasTex(drawBoostPadGlow, 68, 36),
     conveyor: canvasTex(drawConveyor, 64, 28),
-    biomes: createBiomeTextures(128),
+    biomes: createBiomeTextures(192),
     powerups,
   };
 }
