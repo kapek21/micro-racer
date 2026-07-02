@@ -146,6 +146,7 @@ export interface RaceResultInput {
   coinsEarned: number;
   tokensCollected: number;
   finishTimeMs: number;
+  empUses?: number;
 }
 
 export function applyRaceResult(profile: PlayerProfile, result: RaceResultInput): void {
@@ -169,6 +170,7 @@ export function applyRaceResult(profile: PlayerProfile, result: RaceResultInput)
   bumpGoal(profile.dailyGoals, 'd_tokens', result.tokensCollected);
   bumpGoal(profile.weeklyGoals, 'w_races', 1);
   if (result.won) bumpGoal(profile.weeklyGoals, 'w_tracks', 1);
+  if (result.empUses) bumpGoal(profile.weeklyGoals, 'w_emp', result.empUses);
 
   payGoalRewards(profile);
   saveProfile(profile);

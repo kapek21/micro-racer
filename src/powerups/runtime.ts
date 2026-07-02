@@ -7,8 +7,9 @@ import type {
   TokenState,
 } from '../core/types.js';
 import { isOffensivePowerUp, powerUpById } from '../config/powerups.js';
+import { rollTrackPickup } from './spawner.js';
 
-export function activatePowerUp(
+export function applyPowerUpEffect(
   racer: RacerState,
   id: string,
   all: RacerState[],
@@ -90,8 +91,10 @@ export function activatePowerUp(
       racer.magnetMs = def.durationMs ?? 3500;
       break;
   }
-  racer.heldPowerUp = null;
 }
+
+/** @deprecated use applyPowerUpEffect */
+export const activatePowerUp = applyPowerUpEffect;
 
 function applyEmp(racer: RacerState, all: RacerState[]): void {
   for (const other of all) {
@@ -146,6 +149,11 @@ export function tickPowerUpTimers(racer: RacerState, dtMs: number): void {
   dec('paintFoamMs');
   dec('sideDashCooldownMs');
 
+  if (racer.heldPowerUp && racer.heldPowerUp.remainingMs > 0) {
+    racer.heldPowerUp.remainingMs = Math.max(0, racer.heldPowerUp.remainingMs - dtMs);
+    if (racer.heldPowerUp.remainingMs <= 0) racer.heldPowerUp = null;
+  }
+
   if (racer.droneZapTimerMs > 0) {
     racer.droneZapTimerMs -= dtMs;
     if (racer.droneZapTimerMs <= 0) racer.droneZapTargetId = null;
@@ -157,16 +165,31 @@ export function useHeldPowerUp(
   all: RacerState[],
   mines: MineState[],
   foam: FoamPatch[],
-): void {
-  if (!racer.heldPowerUp || racer.eliminated) return;
-  activatePowerUp(racer, racer.heldPowerUp.id, all, mines, foam);
+): string | null {
+  const held = racer.heldPowerUp;
+  if (!held || racer.eliminated) return null;
+  if (held.id === 'side_dash' && racer.sideDashCooldownMs > 0) return null;
+
+  applyPowerUpEffect(racer, held.id, all, mines, foam);
+  held.charges -= 1;
+  const usedId = held.id;
+  if (held.charges <= 0) racer.heldPowerUp = null;
+  return usedId;
 }
 
-export function tickPickups(pickups: PickupState[], dtMs: number): void {
+export function tickPickups(
+  pickups: PickupState[],
+  dtMs: number,
+  trackId: string,
+  offensiveAllowed: boolean,
+): void {
   for (const p of pickups) {
     if (p.active) continue;
     p.respawnTimerMs -= dtMs;
-    if (p.respawnTimerMs <= 0) p.active = true;
+    if (p.respawnTimerMs <= 0) {
+      p.active = true;
+      p.powerUpId = rollTrackPickup(trackId, offensiveAllowed);
+    }
   }
 }
 
@@ -283,13 +306,12 @@ export function tryCollectToken(racer: RacerState, tokens: TokenState[]): void {
 
 export function heldLabel(p: ActivePowerUp | null): string {
   if (!p) return '';
-  return powerUpById(p.id).namePl;
+  const name = powerUpById(p.id).namePl;
+  return p.charges > 1 ? `${name} ×${p.charges}` : name;
 }
 
 /** Battle lap: replace pickups with offensive pool. */
-export function battleLapPickups(
-  pickups: PickupState[],
-): void {
+export function battleLapPickups(pickups: PickupState[]): void {
   const pool = ['emp_pulse', 'nano_mine', 'drone_zap', 'paint_foam', 'turbo_cell', 'shield_bubble'];
   pickups.forEach((p, i) => {
     p.powerUpId = pool[i % pool.length]!;

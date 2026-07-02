@@ -73,6 +73,63 @@ export interface GateDef {
   h: number;
   shortcut?: boolean;
   defaultOpen?: boolean;
+  trigger?: 'default' | 'photocell' | 'traffic' | 'rhythm' | 'blinds' | 'laser';
+}
+
+export interface HeatZoneDef {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  gripMult: number;
+  boostOnExit?: boolean;
+}
+
+export interface PhotocellDef {
+  id: string;
+  gateId: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  autoClose?: boolean;
+}
+
+export interface TrafficSignalDef {
+  id: string;
+  gateIds: string[];
+  cycleMs: number;
+  greenMs: number;
+  phaseOffsetMs?: number;
+}
+
+export interface RhythmSectorDef {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  cycleMs: number;
+  activeMs: number;
+  phaseOffsetMs?: number;
+  gateId?: string;
+}
+
+export interface SprinklerDef {
+  id: string;
+  slipId: string;
+  cycleMs: number;
+  activeMs: number;
+  phaseOffsetMs?: number;
+}
+
+export interface TrampolineDef {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  angle: number;
+  impulse: number;
 }
 
 export interface CameraTrapDef {
@@ -115,6 +172,14 @@ export interface PickupSpawn {
   respawnMs: number;
 }
 
+export interface SlipZoneDef {
+  id?: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface TrackDef extends TrackConfig {
   centerline: Vec2[];
   trackWidth: number;
@@ -122,12 +187,18 @@ export interface TrackDef extends TrackConfig {
   startAngles: number[];
   hazards: HazardDef[];
   pickups: PickupSpawn[];
-  slipZones: { x: number; y: number; w: number; h: number }[];
+  slipZones: SlipZoneDef[];
   boostPads: { x: number; y: number; w: number; h: number }[];
   checkpoints: CheckpointDef[];
   gates: GateDef[];
   cameraTraps: CameraTrapDef[];
   tokens: TokenSpawn[];
+  heatZones?: HeatZoneDef[];
+  photocells?: PhotocellDef[];
+  trafficSignals?: TrafficSignalDef[];
+  rhythmSectors?: RhythmSectorDef[];
+  sprinklers?: SprinklerDef[];
+  trampolines?: TrampolineDef[];
   bgColor: number;
   accentColor: number;
 }
@@ -219,6 +290,13 @@ export interface TokenState {
   active: boolean;
 }
 
+export interface GimmickRuntimeState {
+  phase: number;
+  timers: Record<string, number>;
+  flags: Record<string, boolean>;
+  activeSlipIds: Set<string>;
+}
+
 export interface RaceState {
   phase: RacePhase;
   mode: GameModeId;
@@ -242,6 +320,9 @@ export interface RaceState {
   bestLapMs: number;
   currentLapStartMs: number;
   offensivePickupsAllowed: boolean;
+  hazardIntensity: number;
+  gimmickState: GimmickRuntimeState;
+  empUsesThisRace: number;
 }
 
 export interface PlayerInput {

@@ -11,11 +11,16 @@ export function initHazards(defs: HazardDef[]): HazardState[] {
   }));
 }
 
-export function tickHazards(hazards: HazardState[], defs: HazardDef[], dt: number): void {
+export function tickHazards(
+  hazards: HazardState[],
+  defs: HazardDef[],
+  dt: number,
+  intensity = 1,
+): void {
   for (const h of hazards) {
     const def = defs.find((d) => d.id === h.id);
     if (!def) continue;
-    const speed = def.speed ?? 120;
+    const speed = (def.speed ?? 120) * intensity;
     const dx = def.x2 - def.x1;
     const dy = def.y2 - def.y1;
     const len = Math.hypot(dx, dy) || 1;
@@ -26,7 +31,12 @@ export function tickHazards(hazards: HazardState[], defs: HazardDef[], dt: numbe
   }
 }
 
-export function applyHazardHit(racer: RacerState, h: HazardState, def: HazardDef): boolean {
+export function applyHazardHit(
+  racer: RacerState,
+  h: HazardState,
+  def: HazardDef,
+  intensity = 1,
+): boolean {
   const r = def.width ?? 32;
   const dx = racer.x - h.x;
   const dy = racer.y - h.y;
@@ -34,7 +44,7 @@ export function applyHazardHit(racer: RacerState, h: HazardState, def: HazardDef
   if (racer.shieldMs > 0) return true;
 
   const dist = Math.hypot(dx, dy) || 1;
-  const push = def.kind === 'drone_drop' ? 200 : 160;
+  const push = (def.kind === 'drone_drop' ? 200 : 160) * intensity;
 
   if (def.kind === 'conveyor') {
     const fx = Math.cos(h.angle);

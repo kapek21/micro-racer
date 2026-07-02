@@ -3,7 +3,7 @@ import type { PowerUpConfig } from '../core/types.js';
 export const POWERUPS: PowerUpConfig[] = [
   { id: 'turbo_cell', namePl: 'Turbo Cell', category: 'mobility', rarity: 'common', durationMs: 2200 },
   { id: 'overcharge_boost', namePl: 'Overcharge Boost', category: 'mobility', rarity: 'rare', durationMs: 2800 },
-  { id: 'side_dash', namePl: 'Side Dash', category: 'mobility', rarity: 'common', charges: 1 },
+  { id: 'side_dash', namePl: 'Side Dash', category: 'mobility', rarity: 'common', charges: 2 },
   { id: 'smart_grip', namePl: 'Smart Grip', category: 'mobility', rarity: 'common', durationMs: 3500 },
   { id: 'emp_pulse', namePl: 'EMP Pulse', category: 'offense', rarity: 'rare', durationMs: 1800, offensive: true },
   { id: 'nano_mine', namePl: 'Nano Mine', category: 'offense', rarity: 'common', charges: 2, offensive: true },

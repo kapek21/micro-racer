@@ -14,11 +14,11 @@ export function tickGates(
   racers: RacerState[],
 ): void {
   for (const g of track.gates) {
-    if (g.shortcut) {
-      const hacked = racers.some((r) => r.gateHackMs > 0 && nearGate(r, g));
-      if (hacked) gateOpen[g.id] = true;
-      else gateOpen[g.id] = false;
-    }
+    if (!g.shortcut) continue;
+    if (g.trigger && g.trigger !== 'default') continue;
+    const hacked = racers.some((r) => r.gateHackMs > 0 && nearGate(r, g));
+    if (hacked) gateOpen[g.id] = true;
+    else gateOpen[g.id] = false;
   }
 }
 

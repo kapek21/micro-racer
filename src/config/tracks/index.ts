@@ -1,4 +1,5 @@
-import { buildTrack, defaultPickups } from './builder.js';
+import { buildTrack } from './builder.js';
+import { trackPickups } from '../../powerups/spawner.js';
 
 /** Track 1 — onboarding smart kitchen loop. */
 export const SMART_KITCHEN = buildTrack({
@@ -32,11 +33,13 @@ export const SMART_KITCHEN = buildTrack({
     { id: 'vac_main', kind: 'robot_vacuum', x1: 420, y1: 400, x2: 780, y2: 400, speed: 140, width: 36 },
   ],
   slipZones: [{ x: 500, y: 360, w: 200, h: 80 }],
+  gates: [{ id: 'kitchen_short', x: 720, y: 380, w: 20, h: 60, shortcut: true, defaultOpen: false }],
   boostPads: [
     { x: 900, y: 520, w: 80, h: 40 },
     { x: 220, y: 520, w: 80, h: 40 },
   ],
-  pickups: defaultPickups(
+  pickups: trackPickups(
+    'smart_kitchen',
     ['p1', 'p2', 'p3'],
     [
       { x: 600, y: 300 },
@@ -94,7 +97,8 @@ export const SOLAR_ROOF = buildTrack({
   hazards: [
     { id: 'mower_edge', kind: 'robot_mower', x1: 300, y1: 650, x2: 900, y2: 650, speed: 100, width: 30 },
   ],
-  pickups: defaultPickups(
+  pickups: trackPickups(
+    'solar_roof',
     ['p1', 'p2', 'p3'],
     [
       { x: 600, y: 400 },
@@ -102,6 +106,10 @@ export const SOLAR_ROOF = buildTrack({
       { x: 1000, y: 500 },
     ],
   ),
+  heatZones: [
+    { x: 850, y: 300, w: 120, h: 80, gripMult: 0.65, boostOnExit: true },
+    { x: 230, y: 300, w: 120, h: 80, gripMult: 0.65, boostOnExit: true },
+  ],
   checkpoints: [
     { id: 'cp1', progress: 0.2, x: 1100, y: 280, deadlineMs: 10000 },
     { id: 'cp2', progress: 0.55, x: 300, y: 680, deadlineMs: 24000 },
@@ -138,7 +146,7 @@ export const ROBO_GARDEN = buildTrack({
     { x: 600, y: 160 },
   ],
   slipZones: [
-    { x: 500, y: 480, w: 200, h: 60 },
+    { id: 'sprinkler_mid', x: 500, y: 480, w: 200, h: 60 },
     { x: 420, y: 280, w: 160, h: 50 },
   ],
   boostPads: [{ x: 600, y: 520, w: 70, h: 35 }],
@@ -146,7 +154,11 @@ export const ROBO_GARDEN = buildTrack({
     { id: 'mower1', kind: 'robot_mower', x1: 350, y1: 420, x2: 850, y2: 420, speed: 120, width: 32 },
     { id: 'mower2', kind: 'robot_mower', x1: 850, y1: 420, x2: 350, y2: 420, speed: 90, width: 28 },
   ],
-  pickups: defaultPickups(
+  sprinklers: [
+    { id: 'sp1', slipId: 'sprinkler_mid', cycleMs: 5000, activeMs: 2200, phaseOffsetMs: 0 },
+  ],
+  pickups: trackPickups(
+    'robo_garden',
     ['p1', 'p2', 'p3'],
     [
       { x: 600, y: 350 },
@@ -194,8 +206,12 @@ export const EV_GARAGE = buildTrack({
     { id: 'gate_shortcut', x: 650, y: 350, w: 20, h: 80, shortcut: true, defaultOpen: false },
     { id: 'gate_main', x: 480, y: 620, w: 80, h: 20, defaultOpen: true },
   ],
+  photocells: [
+    { id: 'photo1', gateId: 'gate_shortcut', x: 620, y: 320, w: 50, h: 50, autoClose: true },
+  ],
   cameraTraps: [{ id: 'cam1', x: 650, y: 380, radius: 90 }],
-  pickups: defaultPickups(
+  pickups: trackPickups(
+    'ev_garage',
     ['p1', 'p2', 'p3'],
     [
       { x: 400, y: 300 },
@@ -241,9 +257,10 @@ export const SECURITY_HUB = buildTrack({
   ],
   gates: [
     { id: 'gate_a', x: 880, y: 280, w: 20, h: 70, shortcut: true, defaultOpen: false },
-    { id: 'gate_b', x: 300, y: 280, w: 20, h: 70, shortcut: true, defaultOpen: false },
+    { id: 'gate_b', x: 300, y: 280, w: 20, h: 70, shortcut: true, defaultOpen: false, trigger: 'laser' },
   ],
-  pickups: defaultPickups(
+  pickups: trackPickups(
+    'security_hub',
     ['p1', 'p2', 'p3'],
     [
       { x: 600, y: 250 },
@@ -283,9 +300,11 @@ export const DRONE_DEPOT = buildTrack({
   hazards: [
     { id: 'drone1', kind: 'drone_drop', x1: 450, y1: 250, x2: 750, y2: 250, speed: 80, width: 40 },
     { id: 'conv1', kind: 'conveyor', x1: 550, y1: 450, x2: 650, y2: 450, speed: 100, width: 60 },
+    { id: 'conv2', kind: 'conveyor', x1: 350, y1: 520, x2: 450, y2: 520, speed: 90, width: 55 },
   ],
   boostPads: [{ x: 600, y: 400, w: 80, h: 40 }],
-  pickups: defaultPickups(
+  pickups: trackPickups(
+    'drone_depot',
     ['p1', 'p2', 'p3'],
     [
       { x: 400, y: 350 },
@@ -330,7 +349,11 @@ export const LIVING_ROOM = buildTrack({
     { x: 600, y: 300, w: 60, h: 30 },
     { x: 600, y: 500, w: 60, h: 30 },
   ],
-  pickups: defaultPickups(
+  rhythmSectors: [
+    { id: 'rh1', x: 520, y: 360, w: 160, h: 80, cycleMs: 3500, activeMs: 1800, phaseOffsetMs: 0 },
+  ],
+  pickups: trackPickups(
+    'living_room',
     ['p1', 'p2', 'p3'],
     [
       { x: 750, y: 350 },
@@ -371,9 +394,10 @@ export const BALCONY_WIND = buildTrack({
     { x: 500, y: 200, w: 200, h: 40 },
     { x: 500, y: 560, w: 200, h: 40 },
   ],
-  gates: [{ id: 'blind_short', x: 580, y: 350, w: 40, h: 20, shortcut: true, defaultOpen: false }],
+  gates: [{ id: 'blind_short', x: 580, y: 350, w: 40, h: 20, shortcut: true, defaultOpen: false, trigger: 'blinds' }],
   boostPads: [{ x: 600, y: 400, w: 70, h: 35 }],
-  pickups: defaultPickups(
+  pickups: trackPickups(
+    'balcony_wind',
     ['p1', 'p2', 'p3'],
     [
       { x: 350, y: 350 },
@@ -419,7 +443,12 @@ export const DATA_DESK = buildTrack({
   hazards: [
     { id: 'vac_desk', kind: 'robot_vacuum', x1: 350, y1: 450, x2: 850, y2: 450, speed: 150, width: 30 },
   ],
-  pickups: defaultPickups(
+  trampolines: [
+    { x: 550, y: 420, w: 100, h: 40, angle: -0.4, impulse: 180 },
+    { x: 650, y: 520, w: 80, h: 35, angle: 0.5, impulse: 160 },
+  ],
+  pickups: trackPickups(
+    'data_desk',
     ['p1', 'p2', 'p3'],
     [
       { x: 600, y: 450 },
@@ -464,12 +493,19 @@ export const SMART_CITY = buildTrack({
     { id: 'drone_city', kind: 'drone_drop', x1: 600, y1: 200, x2: 600, y2: 600, speed: 70, width: 35 },
   ],
   cameraTraps: [{ id: 'city_cam', x: 600, y: 400, radius: 100 }],
-  gates: [{ id: 'city_short', x: 580, y: 500, w: 40, h: 20, shortcut: true, defaultOpen: false }],
+  gates: [
+    { id: 'city_short', x: 580, y: 500, w: 40, h: 20, shortcut: true, defaultOpen: false },
+    { id: 'city_round', x: 400, y: 400, w: 20, h: 60, shortcut: true, defaultOpen: false },
+  ],
+  trafficSignals: [
+    { id: 'sig_main', gateIds: ['city_short', 'city_round'], cycleMs: 5000, greenMs: 2800, phaseOffsetMs: 0 },
+  ],
   boostPads: [
     { x: 600, y: 600, w: 80, h: 35 },
     { x: 600, y: 200, w: 80, h: 35 },
   ],
-  pickups: defaultPickups(
+  pickups: trackPickups(
+    'smart_city',
     ['p1', 'p2', 'p3'],
     [
       { x: 900, y: 350 },

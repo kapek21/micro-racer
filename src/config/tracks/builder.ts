@@ -23,6 +23,12 @@ export interface TrackBlueprint {
   gates?: TrackDef['gates'];
   cameraTraps?: TrackDef['cameraTraps'];
   tokens?: TrackDef['tokens'];
+  heatZones?: TrackDef['heatZones'];
+  photocells?: TrackDef['photocells'];
+  trafficSignals?: TrackDef['trafficSignals'];
+  rhythmSectors?: TrackDef['rhythmSectors'];
+  sprinklers?: TrackDef['sprinklers'];
+  trampolines?: TrackDef['trampolines'];
 }
 
 function deriveStarts(centerline: Vec2[], trackWidth: number): { positions: Vec2[]; angles: number[] } {
@@ -69,6 +75,12 @@ export function buildTrack(b: TrackBlueprint): TrackDef {
     gates: b.gates ?? [],
     cameraTraps: b.cameraTraps ?? [],
     tokens: b.tokens ?? [],
+    heatZones: b.heatZones,
+    photocells: b.photocells,
+    trafficSignals: b.trafficSignals,
+    rhythmSectors: b.rhythmSectors,
+    sprinklers: b.sprinklers,
+    trampolines: b.trampolines,
   };
 }
 

@@ -112,6 +112,7 @@ function App(): JSX.Element {
               coinsEarned: state.coinsEarned,
               tokensCollected: player.tokensCollected,
               finishTimeMs: player.finishTimeMs,
+              empUses: state.empUsesThisRace,
             });
             useHudStore.getState().reloadProfile();
           }

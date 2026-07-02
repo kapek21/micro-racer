@@ -1,6 +1,7 @@
 import type { GameModeId, PlayerInput, RaceState, RacerState, TrackDef } from '../core/types.js';
 import { gameModeById } from '../config/game-modes.js';
 import { tickCameraTraps } from '../environment/cameras.js';
+import { createGimmickState, tickGimmicks } from '../environment/gimmicks.js';
 import { applyHazardHit, applyWindForce, initHazards, tickHazards } from '../environment/hazards.js';
 import { gateBlocksRacer, initGateStates, tickGates } from '../environment/gates.js';
 import { VEHICLES } from '../config/vehicles.js';
@@ -37,6 +38,12 @@ import {
 } from './mode-logic.js';
 
 let samplesCache: TrackSample[] = [];
+
+function hazardIntensityForMode(state: RaceState): number {
+  if (state.mode !== 'hazard_run') return 1;
+  const lapBoost = state.racers.find((r) => r.isPlayer)?.lap ?? 0;
+  return 1 + lapBoost * 0.35 + state.timeMs / 90000;
+}
 
 export function createRaceState(
   track: TrackDef,
@@ -82,6 +89,9 @@ export function createRaceState(
     bestLapMs: Infinity,
     currentLapStartMs: 0,
     offensivePickupsAllowed: modeCfg.offensivePickups,
+    hazardIntensity: mode === 'hazard_run' ? 1.2 : 1,
+    gimmickState: createGimmickState(),
+    empUsesThisRace: 0,
   };
 }
 
@@ -164,8 +174,13 @@ export function tickRace(
   if (state.phase !== 'racing') return;
 
   state.timeMs += dtMs;
-  tickHazards(state.hazards, track.hazards, dt);
-  tickPickups(state.pickups, dtMs);
+  if (state.mode === 'hazard_run') {
+    state.hazardIntensity = hazardIntensityForMode(state);
+  }
+
+  tickHazards(state.hazards, track.hazards, dt, state.hazardIntensity);
+  tickGimmicks(state, track, dtMs);
+  tickPickups(state.pickups, dtMs, track.id, state.offensivePickupsAllowed);
   tickMines(state.mines, state.racers, dtMs);
   tickFoam(state.foamPatches, state.racers, dtMs);
   tickDroneZap(state.racers);
@@ -178,25 +193,36 @@ export function tickRace(
     }
   }
 
+  const aiCtx = {
+    hazards: state.hazards,
+    hazardDefs: track.hazards,
+    slipZones: track.slipZones,
+    opponents: state.racers,
+    offensiveAllowed: state.offensivePickupsAllowed,
+  };
+
   for (const racer of state.racers) {
     tickPowerUpTimers(racer, dtMs);
     if (racer.finished || racer.eliminated) continue;
 
     const input = racer.isPlayer
       ? playerInput
-      : aiInput(racer, samples, 0.55 + Math.random() * 0.25);
+      : aiInput(racer, samples, 0.55 + Math.random() * 0.25, aiCtx);
 
     if (racer.isPlayer && playerInput.usePowerUp) {
+      const used = useHeldPowerUp(racer, state.racers, state.mines, state.foamPatches);
+      if (used === 'emp_pulse') state.empUsesThisRace += 1;
+    } else if (!racer.isPlayer && input.usePowerUp) {
       useHeldPowerUp(racer, state.racers, state.mines, state.foamPatches);
     }
 
-    updateVehicle(racer, input, track, samples, dt);
+    updateVehicle(racer, input, track, samples, dt, state);
     gateBlocksRacer(racer, track, state.gateOpen);
     applyBoostPad(racer, track);
 
     for (const h of state.hazards) {
       const def = track.hazards.find((d) => d.id === h.id);
-      if (def) applyHazardHit(racer, h, def);
+      if (def) applyHazardHit(racer, h, def, state.hazardIntensity);
     }
 
     magnetPull(racer, state.pickups, state.tokens);

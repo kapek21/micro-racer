@@ -140,6 +140,8 @@ export class RaceRenderer {
     drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t);
 
     drawSlipZones(this.layers.decals, track);
+    drawGimmickZones(this.layers.decals, track, state, this.t);
+    drawCheckpoints(this.layers.decals, track);
     drawGates(this.layers.decals, track, state);
     drawCameraTraps(this.layers.decals, track, this.t);
     drawFoam(this.layers.decals, state);
@@ -311,6 +313,50 @@ export class RaceRenderer {
 function drawSlipZones(g: Graphics, track: TrackDef): void {
   for (const z of track.slipZones) {
     g.roundRect(z.x, z.y, z.w, z.h, 8).fill({ color: 0x60c0ff, alpha: 0.22 });
+  }
+}
+
+function drawGimmickZones(g: Graphics, track: TrackDef, state: RaceState, t: number): void {
+  const pulse = 0.5 + 0.5 * Math.sin(t * 0.006);
+  for (const zone of track.heatZones ?? []) {
+    g.roundRect(zone.x, zone.y, zone.w, zone.h, 6).fill({ color: 0xff6020, alpha: 0.18 + pulse * 0.1 });
+    g.roundRect(zone.x, zone.y, zone.w, zone.h, 6).stroke({ color: 0xff9040, width: 1, alpha: 0.35 });
+  }
+  for (const cell of track.photocells ?? []) {
+    g.rect(cell.x, cell.y, cell.w, cell.h).stroke({ color: 0xffa030, width: 1, alpha: 0.5 });
+    g.rect(cell.x, cell.y, cell.w, cell.h).fill({ color: 0xffa030, alpha: 0.08 });
+  }
+  for (const sig of track.trafficSignals ?? []) {
+    const green = state.gimmickState.flags[`sig_${sig.id}`];
+    g.circle(sig.gateIds[0] ? track.gates.find((x) => x.id === sig.gateIds[0])?.x ?? 0 : 0, 0, 8).fill({
+      color: green ? 0x40ff80 : 0xff4040,
+      alpha: 0.8,
+    });
+  }
+  for (const tr of track.trampolines ?? []) {
+    g.roundRect(tr.x, tr.y, tr.w, tr.h, 4).fill({ color: 0xa0a0ff, alpha: 0.35 });
+    g.roundRect(tr.x, tr.y, tr.w, tr.h, 4).stroke({ color: 0xffffff, width: 1, alpha: 0.4 });
+  }
+  for (const sector of track.rhythmSectors ?? []) {
+    const active = state.gimmickState.flags[`rhythm_${sector.id}`];
+    g.roundRect(sector.x, sector.y, sector.w, sector.h, 8).fill({
+      color: active ? 0xff40ff : 0x401040,
+      alpha: active ? 0.2 : 0.12,
+    });
+  }
+  if (state.mode === 'hazard_run') {
+    g.rect(20, 20, 140, 24).fill({ color: 0x000000, alpha: 0.45 });
+    g.rect(24, 24, 132 * Math.min(1, state.hazardIntensity / 2.5), 16).fill({
+      color: 0xff4040,
+      alpha: 0.7,
+    });
+  }
+}
+
+function drawCheckpoints(g: Graphics, track: TrackDef): void {
+  for (const cp of track.checkpoints) {
+    g.circle(cp.x, cp.y, 14).stroke({ color: 0xffffff, width: 2, alpha: 0.55 });
+    g.circle(cp.x, cp.y, 6).fill({ color: 0x40c0ff, alpha: 0.75 });
   }
 }
 

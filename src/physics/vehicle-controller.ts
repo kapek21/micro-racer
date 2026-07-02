@@ -1,6 +1,7 @@
-import type { PlayerInput, RacerState, TrackDef } from '../core/types.js';
+import type { PlayerInput, RaceState, RacerState, TrackDef } from '../core/types.js';
 import { vehicleById } from '../config/vehicles.js';
 import { buildTrackSamples, clampToTrack, isOnTrack, type TrackSample } from './track-math.js';
+import { isSprinklerSlipActive, rhythmSectorGripMult } from '../environment/gimmicks.js';
 
 export function updateVehicle(
   racer: RacerState,
@@ -8,6 +9,7 @@ export function updateVehicle(
   track: TrackDef,
   samples: TrackSample[],
   dt: number,
+  raceState?: RaceState,
 ): void {
   const cfg = vehicleById(racer.vehicleId);
   const onTrack = isOnTrack(track, samples, racer.x, racer.y);
@@ -16,7 +18,9 @@ export function updateVehicle(
   if (racer.gripMs > 0) traction = Math.min(1.08, traction + 0.14);
   if (racer.overchargeMs > 0) traction *= 0.78;
   if (racer.empSlowMs > 0) traction *= 0.72;
-  if (inSlipZone(racer, track)) traction *= 0.68;
+  if (inSlipZone(racer, track, raceState)) traction *= 0.68;
+  if (inHeatZone(racer, track)) traction *= 0.72;
+  if (raceState) traction *= rhythmSectorGripMult(raceState, track, racer);
 
   const steer = Math.max(-1, Math.min(1, input.steer));
   const cos = Math.cos(racer.angle);
@@ -89,8 +93,16 @@ export function updateVehicle(
   }
 }
 
-function inSlipZone(racer: RacerState, track: TrackDef): boolean {
+function inSlipZone(racer: RacerState, track: TrackDef, raceState?: RaceState): boolean {
   for (const z of track.slipZones) {
+    if (z.id && raceState && !isSprinklerSlipActive(raceState, z.id)) continue;
+    if (racer.x >= z.x && racer.x <= z.x + z.w && racer.y >= z.y && racer.y <= z.y + z.h) return true;
+  }
+  return false;
+}
+
+function inHeatZone(racer: RacerState, track: TrackDef): boolean {
+  for (const z of track.heatZones ?? []) {
     if (racer.x >= z.x && racer.x <= z.x + z.w && racer.y >= z.y && racer.y <= z.y + z.h) return true;
   }
   return false;
