@@ -44,7 +44,7 @@ export class RaceCamera {
     this.y += (targetY - this.y) * t;
 
     if (useChase) {
-      const targetRot = -angle + Math.PI / 2;
+      const targetRot = -angle - Math.PI / 2;
       let diff = targetRot - this.rotation;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
