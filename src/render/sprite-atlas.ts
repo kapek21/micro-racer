@@ -34,7 +34,7 @@ export interface SpriteAtlas {
 export function createSpriteAtlas(): SpriteAtlas {
   const vehicles: Record<string, Texture> = {};
   for (const v of VEHICLES) {
-    vehicles[v.id] = canvasTex((ctx, w, h) => drawVehicleSprite(ctx, w, h, v.class, v.color, v.accent), 80, 48);
+    vehicles[v.id] = canvasTex((ctx, w, h) => drawVehicleSprite(ctx, w, h, v.class, v.color, v.accent), 112, 64);
   }
 
   const powerups: Record<string, Texture> = {};
@@ -72,6 +72,20 @@ export function createSpriteAtlas(): SpriteAtlas {
 
 function hex(c: number): string {
   return `#${c.toString(16).padStart(6, '0')}`;
+}
+
+function lightenHex(c: number, amt: number): string {
+  const r = Math.min(255, ((c >> 16) & 255) + amt * 255);
+  const g = Math.min(255, ((c >> 8) & 255) + amt * 255);
+  const b = Math.min(255, (c & 255) + amt * 255);
+  return `rgb(${r | 0},${g | 0},${b | 0})`;
+}
+
+function darkenHex(c: number, amt: number): string {
+  const r = Math.max(0, ((c >> 16) & 255) * (1 - amt));
+  const g = Math.max(0, ((c >> 8) & 255) * (1 - amt));
+  const b = Math.max(0, (c & 255) * (1 - amt));
+  return `rgb(${r | 0},${g | 0},${b | 0})`;
 }
 
 function canvasTex(
@@ -202,9 +216,13 @@ function drawGlow(ctx: CanvasRenderingContext2D, w: number, h: number): void {
 }
 
 function drawShadow(ctx: CanvasRenderingContext2D, w: number, h: number): void {
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath();
-  ctx.ellipse(w / 2, h / 2, w * 0.42, h * 0.35, 0, 0, Math.PI * 2);
+  ctx.ellipse(w / 2, h / 2, w * 0.48, h * 0.38, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath();
+  ctx.ellipse(w / 2, h / 2, w * 0.38, h * 0.28, 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -216,33 +234,48 @@ function drawVehicleSprite(
   color: number,
   accent: number,
 ): void {
-  const body = hex(color);
   const trim = hex(accent);
   ctx.clearRect(0, 0, w, h);
   ctx.save();
   ctx.translate(w * 0.5, h * 0.5);
 
-  // Wheels
-  ctx.fillStyle = '#1a1a22';
+  // Contact shadow under body
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(0, h * 0.22, w * 0.32, h * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Wheels — rubber with rim highlight
   for (const [wx, wy] of [
     [-0.28, -0.32],
     [0.28, -0.32],
     [-0.28, 0.32],
     [0.28, 0.32],
   ] as const) {
+    const px = wx * w;
+    const py = wy * h;
+    ctx.fillStyle = '#0a0a10';
     ctx.beginPath();
-    ctx.arc(wx * w, wy * h, 5, 0, Math.PI * 2);
+    ctx.arc(px, py, 6, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = '#2a2a32';
     ctx.beginPath();
-    ctx.arc(wx * w, wy * h, 2.5, 0, Math.PI * 2);
+    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#1a1a22';
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(px - 1, py - 1, 3, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
-  ctx.fillStyle = body;
+  const bodyGrad = ctx.createLinearGradient(-w * 0.35, -h * 0.3, w * 0.35, h * 0.3);
+  bodyGrad.addColorStop(0, lightenHex(color, 0.22));
+  bodyGrad.addColorStop(0.45, hex(color));
+  bodyGrad.addColorStop(1, darkenHex(color, 0.18));
+  ctx.fillStyle = bodyGrad;
   ctx.strokeStyle = trim;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
 
   if (cls === 'heavy') {
     ctx.beginPath();
@@ -283,8 +316,12 @@ function drawVehicleSprite(
     ctx.stroke();
   }
 
-  // Windshield
-  ctx.fillStyle = 'rgba(160,232,255,0.85)';
+  // Windshield with reflection
+  const glass = ctx.createLinearGradient(w * 0.02, -h * 0.12, w * 0.2, h * 0.12);
+  glass.addColorStop(0, 'rgba(200,240,255,0.95)');
+  glass.addColorStop(0.5, 'rgba(120,180,220,0.75)');
+  glass.addColorStop(1, 'rgba(80,140,180,0.65)');
+  ctx.fillStyle = glass;
   ctx.beginPath();
   ctx.roundRect(w * 0.02, -h * 0.12, w * 0.18, h * 0.24, 3);
   ctx.fill();

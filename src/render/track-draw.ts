@@ -171,7 +171,7 @@ export function drawTrack(
   const bumperW = 10;
   const dashOffset = (t * 0.05) % 40;
 
-  // Worn lane on table surface
+  // Worn racing lane — dark core + lighter edges (rubber on table)
   for (let i = 0; i < samples.length - 1; i++) {
     const a = samples[i]!;
     const b = samples[i + 1]!;
@@ -184,9 +184,22 @@ export function drawTrack(
     g.lineTo(a.x - nx * hw, a.y - ny * hw);
     g.closePath();
   }
-  g.fill({ color: theme.laneMark, alpha: 0.42 });
+  g.fill({ color: theme.laneMark, alpha: 0.38 });
 
-  // Rubber / wood bumpers
+  for (let i = 0; i < samples.length - 1; i += 3) {
+    const a = samples[i]!;
+    const b = samples[i + 1] ?? a;
+    const ang = Math.atan2(b.y - a.y, b.x - a.x);
+    const nx = -Math.sin(ang);
+    const ny = Math.cos(ang);
+    for (const side of [-1, 1]) {
+      g.moveTo(a.x + nx * (hw - 8) * side, a.y + ny * (hw - 8) * side);
+      g.lineTo(b.x + nx * (hw - 8) * side, b.y + ny * (hw - 8) * side);
+      g.stroke({ color: 0xffffff, width: 2, alpha: 0.06 });
+    }
+  }
+
+  // Rubber bumpers — dark base + highlight edge
   for (let i = 0; i < samples.length - 1; i++) {
     const a = samples[i]!;
     const b = samples[i + 1]!;
@@ -197,7 +210,10 @@ export function drawTrack(
       const off = hw + bumperW * 0.5;
       g.moveTo(a.x + nx * off * side, a.y + ny * off * side);
       g.lineTo(b.x + nx * off * side, b.y + ny * off * side);
-      g.stroke({ color: theme.railHighlight, width: bumperW, alpha: 0.8 });
+      g.stroke({ color: theme.railShadow, width: bumperW + 1, alpha: 0.35 });
+      g.moveTo(a.x + nx * off * side, a.y + ny * off * side);
+      g.lineTo(b.x + nx * off * side, b.y + ny * off * side);
+      g.stroke({ color: theme.railHighlight, width: bumperW - 2, alpha: 0.75 });
     }
   }
 

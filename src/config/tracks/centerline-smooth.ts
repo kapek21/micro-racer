@@ -1,5 +1,17 @@
 import type { Vec2 } from '../../core/types.js';
 
+const PLAY_MARGIN = 72;
+
+/** Smooth stadium / oval loop — big radius corners, long straights. */
+export function stadiumLoop(cx: number, cy: number, rx: number, ry: number, segments = 28): Vec2[] {
+  const out: Vec2[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = (i / segments) * Math.PI * 2 - Math.PI / 2;
+    out.push({ x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry });
+  }
+  return out;
+}
+
 /** Chaikin corner-cutting — rounds sharp bends for gentler racing lines. */
 function chaikin(points: Vec2[], closed: boolean): Vec2[] {
   const src = closed ? points.slice(0, -1) : points;
@@ -38,7 +50,7 @@ function resampleUniform(points: Vec2[], spacing: number): Vec2[] {
     const p1 = pts[i]!;
     const p2 = pts[(i + 1) % pts.length]!;
     const p3 = pts[(i + 2) % pts.length]!;
-    const steps = Math.max(4, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / spacing));
+    const steps = Math.max(5, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / spacing));
     for (let s = 0; s < steps; s++) {
       dense.push(catmull(p0, p1, p2, p3, s / steps));
     }
@@ -47,33 +59,55 @@ function resampleUniform(points: Vec2[], spacing: number): Vec2[] {
   return dense;
 }
 
-/** Pull loop toward table centre — wider radius corners, less spin on chase cam. */
-function softenLoop(points: Vec2[], cx: number, cy: number, factor: number): Vec2[] {
+function scaleLoop(points: Vec2[], cx: number, cy: number, factor: number): Vec2[] {
   return points.map((p) => ({
     x: cx + (p.x - cx) * factor,
     y: cy + (p.y - cy) * factor,
   }));
 }
 
+function clampToPlayArea(points: Vec2[], w: number, h: number, margin: number): Vec2[] {
+  return points.map((p) => ({
+    x: Math.max(margin, Math.min(w - margin, p.x)),
+    y: Math.max(margin, Math.min(h - margin, p.y)),
+  }));
+}
+
 export interface RefineOptions {
   chaikinIterations?: number;
-  inset?: number;
+  /** Scale loop size from centre (0.94 = big loop with rail margin). */
+  loopScale?: number;
   sampleSpacing?: number;
   center?: Vec2;
+  worldW?: number;
+  worldH?: number;
 }
 
 export function refineCenterline(raw: Vec2[], opts: RefineOptions = {}): Vec2[] {
   const {
-    chaikinIterations = 2,
-    inset = 0.86,
-    sampleSpacing = 28,
+    chaikinIterations = 3,
+    loopScale = 0.94,
+    sampleSpacing = 22,
     center = { x: 600, y: 400 },
+    worldW = 1200,
+    worldH = 800,
   } = opts;
-  let pts = softenLoop(raw, center.x, center.y, inset);
+  let pts = scaleLoop(raw, center.x, center.y, loopScale);
   const closed = pts.length > 2 &&
     Math.hypot(pts[0]!.x - pts[pts.length - 1]!.x, pts[0]!.y - pts[pts.length - 1]!.y) < 2;
   for (let i = 0; i < chaikinIterations; i++) {
     pts = chaikin(pts, closed);
   }
-  return resampleUniform(pts, sampleSpacing);
+  pts = resampleUniform(pts, sampleSpacing);
+  return clampToPlayArea(pts, worldW, worldH, PLAY_MARGIN);
+}
+
+export function estimateLoopLength(points: Vec2[]): number {
+  let len = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    len += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return len;
 }

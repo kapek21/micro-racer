@@ -16,7 +16,7 @@ import { elevationVisualScale } from '../environment/elevation.js';
 import { SpritePool } from './sprite-pool.js';
 import type { PixiApp } from './pixi-app.js';
 
-const VEHICLE_SCALE = 0.72;
+const VEHICLE_SCALE = 0.78;
 const HAZARD_SCALE = 0.68;
 const PICKUP_SCALE = 0.62;
 const TOKEN_SCALE = 0.58;

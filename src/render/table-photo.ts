@@ -1,53 +1,62 @@
 import { Texture } from 'pixi.js';
 import { tableTheme, type TableTheme } from '../config/table-themes.js';
 
+const PHOTO_VERSION = 3;
 const cache = new Map<string, Texture>();
 
 export function tablePhotoTexture(biome: string): Texture {
-  const hit = cache.get(biome);
+  const key = `${biome}_v${PHOTO_VERSION}`;
+  const hit = cache.get(key);
   if (hit) return hit;
   const theme = tableTheme(biome);
   const tex = Texture.from(renderTableCanvas(theme, biome));
-  cache.set(biome, tex);
+  cache.set(key, tex);
   return tex;
 }
 
 function renderTableCanvas(theme: TableTheme, biome: string): HTMLCanvasElement {
+  const scale = 2;
   const w = 1200;
   const h = 800;
   const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = w * scale;
+  canvas.height = h * scale;
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   drawRoomFloor(ctx, w, h);
   drawTableShadow(ctx, w, h);
   drawWoodRailPhoto(ctx, 16, 20, w - 32, h - 40, theme);
   drawSurfacePhoto(ctx, 52, 56, w - 104, h - 112, theme, biome);
   drawLampPool(ctx, w, h, theme);
+  drawEdgeWear(ctx, 52, 56, w - 104, h - 112);
   if (theme.pocketRadius > 0) drawPocketsPhoto(ctx, theme);
   return canvas;
 }
 
 function drawRoomFloor(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, '#1a1008');
+  g.addColorStop(0, '#221810');
+  g.addColorStop(0.55, '#140e08');
   g.addColorStop(1, '#0a0804');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
-  for (let y = 0; y < h; y += 6) {
-    const a = 0.04 + (y % 24) * 0.002;
-    ctx.fillStyle = `rgba(255,220,180,${a})`;
-    ctx.fillRect(0, y, w, 2);
-  }
-  for (let x = 0; x < w; x += 90) {
-    ctx.strokeStyle = 'rgba(30,20,10,0.35)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + 20, h);
-    ctx.stroke();
+  // Parquet planks
+  for (let y = 0; y < h; y += 14) {
+    const shade = 0.06 + (y % 28) * 0.004;
+    ctx.fillStyle = `rgba(80,55,30,${shade})`;
+    ctx.fillRect(0, y, w, 7);
+    for (let x = (y % 28); x < w; x += 56) {
+      ctx.strokeStyle = `rgba(0,0,0,${0.12 + (x % 112) * 0.0005})`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + 14);
+      ctx.stroke();
+    }
   }
 }
 
@@ -97,6 +106,16 @@ function drawWoodRailPhoto(
   ctx.strokeStyle = 'rgba(0,0,0,0.35)';
   ctx.lineWidth = 2;
   roundRect(ctx, x + 36, y + 32, w - 72, h - 64, 8);
+  ctx.stroke();
+  // Inner rail shadow (ambient occlusion)
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 6;
+  roundRect(ctx, x + 38, y + 34, w - 76, h - 68, 7);
+  ctx.stroke();
+  // Specular strip on rail top
+  ctx.strokeStyle = 'rgba(255,230,200,0.35)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, x + 8, y + 6, w - 16, h - 14, 11);
   ctx.stroke();
 }
 
@@ -151,17 +170,38 @@ function drawFeltNoise(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
   ctx.save();
   roundRect(ctx, x, y, w, h, 10);
   ctx.clip();
-  for (let i = 0; i < 18000; i++) {
+  for (let i = 0; i < 28000; i++) {
     const px = x + Math.random() * w;
     const py = y + Math.random() * h;
     const v = Math.random();
-    ctx.fillStyle = v > 0.5 ? `rgba(255,255,255,${Math.random() * 0.04})` : `rgba(0,0,0,${Math.random() * 0.05})`;
+    ctx.fillStyle = v > 0.5 ? `rgba(255,255,255,${Math.random() * 0.045})` : `rgba(0,0,0,${Math.random() * 0.055})`;
     ctx.fillRect(px, py, 1, 1 + Math.random() * 2);
   }
   for (let row = 0; row < h; row += 2) {
-    ctx.fillStyle = `rgba(0,0,0,${0.008 + (row % 4) * 0.003})`;
+    ctx.fillStyle = `rgba(0,0,0,${0.006 + (row % 4) * 0.002})`;
     ctx.fillRect(x, y + row, w, 1);
   }
+  // Brushed felt direction
+  for (let i = 0; i < 80; i++) {
+    const py = y + (i / 80) * h;
+    ctx.strokeStyle = `rgba(0,0,0,${0.015})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, py);
+    ctx.lineTo(x + w, py + Math.sin(i * 0.3) * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawEdgeWear(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  ctx.save();
+  roundRect(ctx, x + 4, y + 4, w - 8, h - 8, 8);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 12;
+  roundRect(ctx, x + 8, y + 8, w - 16, h - 16, 6);
+  ctx.stroke();
   ctx.restore();
 }
 
