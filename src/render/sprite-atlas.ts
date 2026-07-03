@@ -7,6 +7,12 @@ import { createBiomeTextures } from './biome-sprites.js';
 
 export interface SpriteAtlas {
   asphalt: Texture;
+  felt: Texture;
+  wood: Texture;
+  laminate: Texture;
+  concrete: Texture;
+  tile: Texture;
+  grass: Texture;
   kerb: Texture;
   glow: Texture;
   shadow: Texture;
@@ -39,6 +45,12 @@ export function createSpriteAtlas(): SpriteAtlas {
 
   return {
     asphalt: canvasTex(drawAsphalt, 128, 128),
+    felt: canvasTex(drawFelt, 128, 128),
+    wood: canvasTex(drawWoodGrain, 128, 128),
+    laminate: canvasTex(drawLaminate, 128, 128),
+    concrete: canvasTex(drawConcrete, 128, 128),
+    tile: canvasTex(drawTile, 128, 128),
+    grass: canvasTex(drawGrass, 128, 128),
     kerb: canvasTex(drawKerb, 64, 16),
     glow: canvasTex(drawGlow, 64, 64),
     shadow: canvasTex(drawShadow, 64, 32),
@@ -74,6 +86,91 @@ function canvasTex(
   if (!ctx) return Texture.WHITE;
   draw(ctx, w, h);
   return Texture.from(canvas);
+}
+
+function drawFelt(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.fillStyle = '#1a6b3a';
+  ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 1200; i++) {
+    const a = Math.random() * 0.08;
+    ctx.fillStyle = Math.random() > 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a * 0.6})`;
+    ctx.fillRect(Math.random() * w, Math.random() * h, 1, 2);
+  }
+  for (let y = 0; y < h; y += 3) {
+    ctx.fillStyle = `rgba(0,0,0,${0.015 + (y % 6) * 0.003})`;
+    ctx.fillRect(0, y, w, 1);
+  }
+}
+
+function drawWoodGrain(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  const g = ctx.createLinearGradient(0, 0, w, 0);
+  g.addColorStop(0, '#a88858');
+  g.addColorStop(0.5, '#c4a574');
+  g.addColorStop(1, '#a88858');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 24; i++) {
+    const y = (i / 24) * h;
+    ctx.strokeStyle = `rgba(60,30,10,${0.08 + (i % 3) * 0.04})`;
+    ctx.lineWidth = 1 + (i % 2);
+    ctx.beginPath();
+    ctx.moveTo(0, y + Math.sin(i) * 2);
+    ctx.bezierCurveTo(w * 0.3, y + 4, w * 0.7, y - 2, w, y + 1);
+    ctx.stroke();
+  }
+}
+
+function drawLaminate(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.fillStyle = '#e8e0d4';
+  ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 400; i++) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.04})`;
+    ctx.fillRect(Math.random() * w, Math.random() * h, 2, 1);
+  }
+}
+
+function drawConcrete(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.fillStyle = '#707880';
+  ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 600; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.06})`;
+    ctx.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
+  }
+}
+
+function drawTile(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.fillStyle = '#b0b8c0';
+  ctx.fillRect(0, 0, w, h);
+  const ts = 16;
+  ctx.strokeStyle = 'rgba(80,90,100,0.35)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= w; x += ts) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += ts) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+}
+
+function drawGrass(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.fillStyle = '#2d7a4a';
+  ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 800; i++) {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+    ctx.strokeStyle = `rgba(${40 + Math.random() * 30},${120 + Math.random() * 40},${50 + Math.random() * 20},0.35)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (Math.random() - 0.5) * 3, y - 3 - Math.random() * 4);
+    ctx.stroke();
+  }
 }
 
 function drawAsphalt(ctx: CanvasRenderingContext2D, w: number, h: number): void {
@@ -391,9 +488,28 @@ function drawPowerUpIcon(
 }
 
 /** @deprecated use createSpriteAtlas */
-export const createProceduralAssets = (): Pick<SpriteAtlas, 'asphalt' | 'kerb' | 'glow'> => {
+export const createProceduralAssets = (): ProceduralAssets => {
   const a = createSpriteAtlas();
-  return { asphalt: a.asphalt, kerb: a.kerb, glow: a.glow };
+  return {
+    asphalt: a.asphalt,
+    felt: a.felt,
+    wood: a.wood,
+    laminate: a.laminate,
+    concrete: a.concrete,
+    tile: a.tile,
+    grass: a.grass,
+    kerb: a.kerb,
+    glow: a.glow,
+  };
 };
 
-export type ProceduralAssets = Pick<SpriteAtlas, 'asphalt' | 'kerb' | 'glow'>;
+export type ProceduralAssets = Pick<
+  SpriteAtlas,
+  'asphalt' | 'felt' | 'wood' | 'laminate' | 'concrete' | 'tile' | 'grass' | 'kerb' | 'glow'
+>;
+
+export function surfaceTexture(assets: ProceduralAssets, kind: TableTextureKind): Texture {
+  return assets[kind];
+}
+
+export type TableTextureKind = 'felt' | 'wood' | 'laminate' | 'concrete' | 'tile' | 'grass';

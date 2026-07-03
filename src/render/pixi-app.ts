@@ -15,7 +15,7 @@ export class PixiApp {
     this.host = host;
     this.app = new Application();
     await this.app.init({
-      background: 0x060a14,
+      background: 0x1a1208,
       resizeTo: host,
       antialias: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),

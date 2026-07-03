@@ -136,7 +136,7 @@ export class RaceRenderer {
 
     const active = new Set<string>();
 
-    drawBiome(this.layers.bg, track, this.t);
+    drawBiome(this.layers.bg, track, this.t, this.atlas);
     syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active, this.camera.position);
     drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t);
 
@@ -265,7 +265,7 @@ export class RaceRenderer {
           r.boostMs > 0 || r.overchargeMs > 0
             ? { texture: this.atlas.glow, alpha: 0.45 + pulseFast * 0.2, scale: 1.6 }
             : r.isPlayer
-              ? { texture: this.atlas.glow, alpha: 0.12 + pulse * 0.08, scale: 1.35 }
+              ? { texture: this.atlas.glow, alpha: 0.04, scale: 1.2 }
               : undefined,
       });
     }
