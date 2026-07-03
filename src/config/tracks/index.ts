@@ -147,6 +147,8 @@ export const ROBO_GARDEN = buildTrack({
   supportsElimination: true,
   supportsTimeTrial: true,
   hazardSets: ['mower', 'sprinkler'],
+  parTimeMs: 72000,
+  targetLapMs: 24000,
   bgColor: 0x142018,
   accentColor: 0x40e878,
   centerline: [
@@ -199,6 +201,8 @@ export const EV_GARAGE = buildTrack({
   supportsElimination: true,
   supportsTimeTrial: true,
   hazardSets: ['photocell', 'charger'],
+  parTimeMs: 84000,
+  targetLapMs: 28000,
   bgColor: 0x181820,
   accentColor: 0xffa030,
   centerline: [
@@ -252,6 +256,8 @@ export const SECURITY_HUB = buildTrack({
   supportsElimination: true,
   supportsTimeTrial: true,
   hazardSets: ['camera', 'laser'],
+  parTimeMs: 73500,
+  targetLapMs: 24500,
   bgColor: 0x120818,
   accentColor: 0xff4080,
   centerline: [
@@ -300,6 +306,8 @@ export const DRONE_DEPOT = buildTrack({
   supportsElimination: true,
   supportsTimeTrial: true,
   hazardSets: ['drone', 'conveyor'],
+  parTimeMs: 79500,
+  targetLapMs: 26500,
   bgColor: 0x141820,
   accentColor: 0x80a0ff,
   centerline: [
@@ -344,6 +352,8 @@ export const LIVING_ROOM = buildTrack({
   supportsElimination: true,
   supportsTimeTrial: true,
   hazardSets: ['vacuum', 'lights'],
+  parTimeMs: 76500,
+  targetLapMs: 25500,
   bgColor: 0x180818,
   accentColor: 0xff40ff,
   centerline: [
@@ -393,6 +403,8 @@ export const BALCONY_WIND = buildTrack({
   supportsElimination: true,
   supportsTimeTrial: true,
   hazardSets: ['wind', 'blinds'],
+  parTimeMs: 75000,
+  targetLapMs: 25000,
   bgColor: 0x101828,
   accentColor: 0x60c0e0,
   centerline: [
@@ -437,6 +449,8 @@ export const DATA_DESK = buildTrack({
   supportsElimination: true,
   supportsTimeTrial: true,
   hazardSets: ['keys', 'cables'],
+  parTimeMs: 78000,
+  targetLapMs: 26000,
   bgColor: 0x1a1a20,
   accentColor: 0xa0a0ff,
   centerline: [

@@ -49,6 +49,7 @@ function syncHud(state: RaceState, trackName: string, modeName: string, checkpoi
     nextCheckpointDeadlineMs: state.nextCheckpointDeadlineMs,
     raceScore: state.raceScore,
     parTimeMs: state.parTimeMs,
+    targetLapMs: state.targetLapMs,
   });
 }
 

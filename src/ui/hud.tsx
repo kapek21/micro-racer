@@ -6,6 +6,7 @@ import { VEHICLE_SPRITE_URLS } from '../config/asset-paths.js';
 import { VEHICLES } from '../config/vehicles.js';
 import { GAME_MODES } from '../config/game-modes.js';
 import { TRACKS } from '../config/tracks/index.js';
+import { resolveLapCount } from '../race/mode-logic.js';
 import { COSMETICS, buyCosmetic, isTrackUnlocked } from '../meta/profile.js';
 import { TouchControls } from './touch-controls.js';
 
@@ -95,6 +96,9 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
                 <div className="max-h-36 space-y-1 overflow-y-auto">
                   {TRACKS.map((t) => {
                     const locked = !isTrackUnlocked(profile, t.id);
+                    const laps = resolveLapCount(snap.selectedModeId, t);
+                    const parMs = t.parTimeMs ?? laps * (t.targetLapMs ?? 22000);
+                    const targetMs = t.targetLapMs ?? Math.round(parMs / Math.max(1, laps));
                     return (
                       <button
                         key={t.id}
@@ -110,7 +114,9 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
                           />
                           <span>{t.namePl}</span>
                         </span>
-                        <span className="text-white/40">{locked ? '🔒' : t.biome}</span>
+                        <span className="text-right text-white/40">
+                          {locked ? '🔒' : `${laps} okr · par ${formatRaceTime(parMs)} · ${formatRaceTime(targetMs)}/okr`}
+                        </span>
                       </button>
                     );
                   })}
@@ -210,19 +216,23 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
             {snap.position}/{snap.racerCount}
           </div>
         </div>
-        <div className="panel text-center text-xs">
-          <div className="text-white/50">
-            {snap.checkpointTotal > 0 ? `SEKTOR · ${snap.nextCheckpointLabel}` : 'OKRĄŻENIE'}
-          </div>
+        <div className="panel text-center text-xs min-w-[7rem]">
+          <div className="text-white/50">OKRĄŻENIE</div>
           <div className="font-display text-lg">
-            {snap.checkpointTotal > 0
-              ? `${Math.min(snap.checkpointIndex + 1, snap.checkpointTotal)}/${snap.checkpointTotal}`
-              : `${snap.lap}/${snap.lapCount}`}
+            {snap.lap}/{snap.lapCount}
           </div>
-          {snap.checkpointTotal > 0 && snap.phase === 'racing' && (
-            <div className="text-[10px] text-cyan-300">
-              do {formatRaceTime(Math.max(0, snap.nextCheckpointDeadlineMs - snap.timeMs))}
-            </div>
+          {snap.checkpointTotal > 0 && (
+            <>
+              <div className="mt-0.5 text-white/50">SEKTOR · {snap.nextCheckpointLabel}</div>
+              <div className="font-display text-sm">
+                {Math.min(snap.checkpointIndex + 1, snap.checkpointTotal)}/{snap.checkpointTotal}
+              </div>
+              {snap.phase === 'racing' && (
+                <div className="text-[10px] text-cyan-300">
+                  do {formatRaceTime(Math.max(0, snap.nextCheckpointDeadlineMs - snap.timeMs))}
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="panel text-right text-xs">
@@ -233,15 +243,21 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
 
       <div className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2">
         {snap.phase === 'racing' && (
-        <div className="panel flex gap-4 px-4 py-2 text-[10px]">
+        <div className="panel flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 py-2 text-[10px]">
           <div>
-            <div className="text-white/40">OKRĄŻENIE</div>
+            <div className="text-white/40">CZAS OKR.</div>
             <div className="font-display text-sm">{formatRaceTime(snap.currentLapMs)}</div>
           </div>
           <div>
             <div className="text-white/40">BEST</div>
             <div className="font-display text-sm">
               {snap.bestLapMs < Infinity ? formatRaceTime(snap.bestLapMs) : '--'}
+            </div>
+          </div>
+          <div>
+            <div className="text-white/40">PAR · OKR</div>
+            <div className="font-display text-sm text-cyan-200">
+              {formatRaceTime(snap.parTimeMs)} · {formatRaceTime(snap.targetLapMs)}
             </div>
           </div>
           <div>
@@ -302,7 +318,7 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
             {muted ? '🔇' : '🔊'}
           </button>
           <div className="panel text-[10px] text-white/60">
-            {(snap.timeMs / 1000).toFixed(1)}s · 🪙{snap.tokensCollected}
+            {formatRaceTime(snap.timeMs)} / par {formatRaceTime(snap.parTimeMs)} · 🪙{snap.tokensCollected}
           </div>
         </div>
       </div>
@@ -315,7 +331,12 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
             <h2 className="mb-2 font-display text-lg">
               {snap.position === 1 ? 'WYGRANA!' : `MIEJSCE ${snap.position}`}
             </h2>
-            <p className="mb-1 text-sm text-white/70">+{snap.coinsEarned} monet · styl +{snap.stylePoints}</p>
+            <p className="mb-1 text-sm text-white/70">
+              +{snap.coinsEarned} monet · styl +{snap.stylePoints}
+            </p>
+            <p className="mb-3 text-xs text-white/50">
+              Czas {formatRaceTime(snap.timeMs)} · par {formatRaceTime(snap.parTimeMs)} · {snap.lapCount} okr.
+            </p>
             <button type="button" className="btn-primary mb-2 w-full" onClick={onRestart}>
               JESZCZE RAZ
             </button>

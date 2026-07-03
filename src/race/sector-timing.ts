@@ -10,8 +10,11 @@ export function formatRaceTime(ms: number): string {
 }
 
 export function initRaceTiming(state: RaceState, track: TrackDef): void {
-  state.parTimeMs = track.parTimeMs ?? state.lapCount * (track.targetLapMs ?? 22000);
-  state.targetLapMs = track.targetLapMs ?? Math.round(state.parTimeMs / Math.max(1, state.lapCount));
+  const targetLap = track.targetLapMs ?? 22000;
+  state.targetLapMs = targetLap;
+  state.parTimeMs = track.parTimeMs
+    ? Math.round(track.parTimeMs * (state.lapCount / Math.max(1, track.lapCount)))
+    : state.lapCount * targetLap;
   state.raceScore = 0;
   state.lapTimes = [];
   state.sectorSplits = [];
