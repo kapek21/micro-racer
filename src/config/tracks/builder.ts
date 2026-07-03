@@ -1,4 +1,5 @@
 import type { TrackDef, Vec2 } from '../../core/types.js';
+import { refineCenterline } from './centerline-smooth.js';
 
 export interface TrackBlueprint {
   id: string;
@@ -66,7 +67,7 @@ export function buildTrack(b: TrackBlueprint): TrackDef {
     unlockedByDefault: b.unlockedByDefault ?? false,
     parTimeMs: b.parTimeMs,
     targetLapMs: b.targetLapMs,
-    centerline: b.centerline,
+    centerline: refineCenterline(b.centerline),
     trackWidth,
     startPositions: starts.positions,
     startAngles: starts.angles,
