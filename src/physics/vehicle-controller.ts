@@ -2,6 +2,11 @@ import type { PlayerInput, RaceState, RacerState, TrackDef } from '../core/types
 import { vehicleById } from '../config/vehicles.js';
 import { buildTrackSamples, clampToTrack, isOnTrack, type TrackSample } from './track-math.js';
 import { isSprinklerSlipActive, rhythmSectorGripMult } from '../environment/gimmicks.js';
+import {
+  applyElevation,
+  elevationAccelMult,
+  elevationSpeedMult,
+} from '../environment/elevation.js';
 
 export function updateVehicle(
   racer: RacerState,
@@ -13,6 +18,7 @@ export function updateVehicle(
 ): void {
   const cfg = vehicleById(racer.vehicleId);
   const onTrack = isOnTrack(track, samples, racer.x, racer.y);
+  const elev = applyElevation(racer, track);
 
   let traction = cfg.traction;
   if (racer.gripMs > 0) traction = Math.min(1.08, traction + 0.14);
@@ -34,8 +40,9 @@ export function updateVehicle(
   if (racer.overchargeMs > 0) maxSpeed *= 1.22;
   if (!onTrack) maxSpeed *= 0.62;
   if (racer.empSlowMs > 0) maxSpeed *= 0.68;
+  maxSpeed *= elevationSpeedMult(elev.grade, elev.ramp);
 
-  const accel = cfg.acceleration * (onTrack ? 1 : 0.48);
+  const accel = cfg.acceleration * (onTrack ? 1 : 0.48) * elevationAccelMult(elev.grade);
   if (input.brake) {
     forward *= Math.exp(-7.5 * dt);
   } else {

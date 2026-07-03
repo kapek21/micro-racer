@@ -55,6 +55,21 @@ export interface TrackConfig {
   supportsTimeTrial: boolean;
   hazardSets: string[];
   unlockedByDefault?: boolean;
+  /** Par czas całego wyścigu (ms) — cel do punktacji. */
+  parTimeMs?: number;
+  /** Docelowy czas jednego okrążenia (ms). */
+  targetLapMs?: number;
+}
+
+export interface ElevationZoneDef {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Ujemne = podjazd (wolniej), dodatnie = zjazd / rampa (szybciej). */
+  grade: number;
+  ramp?: boolean;
 }
 
 export interface CheckpointDef {
@@ -199,6 +214,7 @@ export interface TrackDef extends TrackConfig {
   rhythmSectors?: RhythmSectorDef[];
   sprinklers?: SprinklerDef[];
   trampolines?: TrampolineDef[];
+  elevationZones?: ElevationZoneDef[];
   bgColor: number;
   accentColor: number;
 }
@@ -261,6 +277,9 @@ export interface RacerState {
   eliminationStrikes: number;
   eliminated: boolean;
   checkpointIndex: number;
+  lastCheckpointCrossMs: number;
+  elevationGrade: number;
+  onRamp: boolean;
   tokensCollected: number;
 }
 
@@ -319,6 +338,16 @@ export interface RaceState {
   checkpointDeadlineMs: number;
   bestLapMs: number;
   currentLapStartMs: number;
+  currentLapMs: number;
+  lapTimes: number[];
+  sectorSplits: number[];
+  raceScore: number;
+  deltaParMs: number;
+  nextCheckpointLabel: string;
+  nextCheckpointDeadlineMs: number;
+  lastSectorMs: number;
+  parTimeMs: number;
+  targetLapMs: number;
   offensivePickupsAllowed: boolean;
   hazardIntensity: number;
   gimmickState: GimmickRuntimeState;

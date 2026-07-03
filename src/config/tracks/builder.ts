@@ -11,6 +11,8 @@ export interface TrackBlueprint {
   supportsTimeTrial: boolean;
   hazardSets: string[];
   unlockedByDefault?: boolean;
+  parTimeMs?: number;
+  targetLapMs?: number;
   trackWidth?: number;
   centerline: Vec2[];
   bgColor: number;
@@ -29,6 +31,7 @@ export interface TrackBlueprint {
   rhythmSectors?: TrackDef['rhythmSectors'];
   sprinklers?: TrackDef['sprinklers'];
   trampolines?: TrackDef['trampolines'];
+  elevationZones?: TrackDef['elevationZones'];
 }
 
 function deriveStarts(centerline: Vec2[], trackWidth: number): { positions: Vec2[]; angles: number[] } {
@@ -61,6 +64,8 @@ export function buildTrack(b: TrackBlueprint): TrackDef {
     supportsTimeTrial: b.supportsTimeTrial,
     hazardSets: b.hazardSets,
     unlockedByDefault: b.unlockedByDefault ?? false,
+    parTimeMs: b.parTimeMs,
+    targetLapMs: b.targetLapMs,
     centerline: b.centerline,
     trackWidth,
     startPositions: starts.positions,
@@ -81,6 +86,7 @@ export function buildTrack(b: TrackBlueprint): TrackDef {
     rhythmSectors: b.rhythmSectors,
     sprinklers: b.sprinklers,
     trampolines: b.trampolines,
+    elevationZones: b.elevationZones,
   };
 }
 

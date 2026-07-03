@@ -27,6 +27,13 @@ export interface HudSnapshot {
   eliminationStrikes: number;
   checkpointIndex: number;
   checkpointTotal: number;
+  currentLapMs: number;
+  bestLapMs: number;
+  deltaParMs: number;
+  nextCheckpointLabel: string;
+  nextCheckpointDeadlineMs: number;
+  raceScore: number;
+  parTimeMs: number;
   selectedVehicleId: string;
   selectedTrackId: string;
   selectedModeId: GameModeId;
@@ -66,6 +73,13 @@ export const useHudStore = create<HudStore>((set) => ({
     eliminationStrikes: 0,
     checkpointIndex: 0,
     checkpointTotal: 0,
+    currentLapMs: 0,
+    bestLapMs: 0,
+    deltaParMs: 0,
+    nextCheckpointLabel: '',
+    nextCheckpointDeadlineMs: Infinity,
+    raceScore: 0,
+    parTimeMs: 0,
     selectedVehicleId: 'volt_mini_gt',
     selectedTrackId: 'smart_kitchen',
     selectedModeId: 'standard_race',

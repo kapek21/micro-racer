@@ -42,6 +42,13 @@ function syncHud(state: RaceState, trackName: string, modeName: string, checkpoi
     eliminationStrikes: player.eliminationStrikes,
     checkpointIndex: player.checkpointIndex,
     checkpointTotal,
+    currentLapMs: state.currentLapMs,
+    bestLapMs: state.bestLapMs,
+    deltaParMs: state.deltaParMs,
+    nextCheckpointLabel: state.nextCheckpointLabel,
+    nextCheckpointDeadlineMs: state.nextCheckpointDeadlineMs,
+    raceScore: state.raceScore,
+    parTimeMs: state.parTimeMs,
   });
 }
 

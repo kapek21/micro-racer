@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode, useState } from 'react';
 import { isGameMuted, toggleGameMute } from '../audio/audio-bind.js';
 import { useHudStore } from './hud-store.js';
+import { formatRaceTime } from '../race/sector-timing.js';
 import { VEHICLE_SPRITE_URLS } from '../config/asset-paths.js';
 import { VEHICLES } from '../config/vehicles.js';
 import { GAME_MODES } from '../config/game-modes.js';
@@ -211,18 +212,53 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
         </div>
         <div className="panel text-center text-xs">
           <div className="text-white/50">
-            {snap.checkpointTotal > 0 ? 'CHECKPOINT' : 'OKRĄŻENIE'}
+            {snap.checkpointTotal > 0 ? `SEKTOR · ${snap.nextCheckpointLabel}` : 'OKRĄŻENIE'}
           </div>
           <div className="font-display text-lg">
             {snap.checkpointTotal > 0
-              ? `${snap.checkpointIndex}/${snap.checkpointTotal}`
+              ? `${Math.min(snap.checkpointIndex + 1, snap.checkpointTotal)}/${snap.checkpointTotal}`
               : `${snap.lap}/${snap.lapCount}`}
           </div>
+          {snap.checkpointTotal > 0 && snap.phase === 'racing' && (
+            <div className="text-[10px] text-cyan-300">
+              do {formatRaceTime(Math.max(0, snap.nextCheckpointDeadlineMs - snap.timeMs))}
+            </div>
+          )}
         </div>
         <div className="panel text-right text-xs">
           <div className="text-white/50">KM/H*</div>
           <div className="font-display text-lg">{Math.round(snap.speed * 0.45)}</div>
         </div>
+      </div>
+
+      <div className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2">
+        {snap.phase === 'racing' && (
+        <div className="panel flex gap-4 px-4 py-2 text-[10px]">
+          <div>
+            <div className="text-white/40">OKRĄŻENIE</div>
+            <div className="font-display text-sm">{formatRaceTime(snap.currentLapMs)}</div>
+          </div>
+          <div>
+            <div className="text-white/40">BEST</div>
+            <div className="font-display text-sm">
+              {snap.bestLapMs < Infinity ? formatRaceTime(snap.bestLapMs) : '--'}
+            </div>
+          </div>
+          <div>
+            <div className="text-white/40">Δ PAR</div>
+            <div
+              className={`font-display text-sm ${snap.deltaParMs <= 0 ? 'text-green-400' : 'text-red-400'}`}
+            >
+              {snap.deltaParMs <= 0 ? '' : '+'}
+              {formatRaceTime(Math.abs(snap.deltaParMs))}
+            </div>
+          </div>
+          <div>
+            <div className="text-white/40">WYNIK</div>
+            <div className="font-display text-sm text-yellow-300">{snap.raceScore}</div>
+          </div>
+        </div>
+        )}
       </div>
 
       {snap.phase === 'countdown' && (

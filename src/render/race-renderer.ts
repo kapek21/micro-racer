@@ -12,6 +12,7 @@ import { syncBiomeDecorations } from './biome-decorations.js';
 import { drawAtmosphere, tickAtmosphereParticles } from './atmosphere.js';
 import { drawBiome, drawTrack } from './track-draw.js';
 import { drawVehicleFx } from './vehicle-draw.js';
+import { elevationVisualScale } from '../environment/elevation.js';
 import { SpritePool } from './sprite-pool.js';
 import type { PixiApp } from './pixi-app.js';
 
@@ -258,7 +259,8 @@ export class RaceRenderer {
       const tex = this.atlas.vehicles[r.vehicleId] ?? this.atlas.vehicles['volt_mini_gt']!;
       const lean = Math.sin(r.angle) * 0.04 * Math.min(1, r.speed / 200);
       const boostScale = r.boostMs > 0 || r.overchargeMs > 0 ? 1.04 : 1;
-      this.entities.set(id, tex, r.x, r.y, r.angle + Math.PI / 2 + lean, VEHICLE_SCALE * boostScale, {
+      const elevScale = elevationVisualScale(r.elevationGrade);
+      this.entities.set(id, tex, r.x, r.y, r.angle + Math.PI / 2 + lean, VEHICLE_SCALE * boostScale * elevScale, {
         glow:
           r.boostMs > 0 || r.overchargeMs > 0
             ? { texture: this.atlas.glow, alpha: 0.45 + pulseFast * 0.2, scale: 1.6 }
@@ -351,6 +353,20 @@ function drawGimmickZones(g: Graphics, track: TrackDef, state: RaceState, t: num
       alpha: active ? 0.2 : 0.12,
     });
   }
+  for (const z of track.elevationZones ?? []) {
+    const uphill = z.grade < 0;
+    const color = z.ramp ? 0xff9040 : uphill ? 0x5060a0 : 0x408060;
+    g.roundRect(z.x, z.y, z.w, z.h, 8).fill({ color, alpha: 0.22 + pulse * 0.08 });
+    g.roundRect(z.x, z.y, z.w, z.h, 8).stroke({ color, width: 1.5, alpha: 0.45 });
+    if (z.ramp) {
+      const cx = z.x + z.w * 0.5;
+      const cy = z.y + z.h * 0.5;
+      g.moveTo(cx - 18, cy + 8);
+      g.lineTo(cx, cy - 12);
+      g.lineTo(cx + 18, cy + 8);
+      g.stroke({ color: 0xffffff, width: 2, alpha: 0.5 });
+    }
+  }
   if (state.mode === 'hazard_run') {
     g.rect(20, 20, 140, 24).fill({ color: 0x000000, alpha: 0.45 });
     g.rect(24, 24, 132 * Math.min(1, state.hazardIntensity / 2.5), 16).fill({
@@ -362,8 +378,8 @@ function drawGimmickZones(g: Graphics, track: TrackDef, state: RaceState, t: num
 
 function drawCheckpoints(g: Graphics, track: TrackDef): void {
   for (const cp of track.checkpoints) {
-    g.circle(cp.x, cp.y, 14).stroke({ color: 0xffffff, width: 2, alpha: 0.55 });
-    g.circle(cp.x, cp.y, 6).fill({ color: 0x40c0ff, alpha: 0.75 });
+    g.circle(cp.x, cp.y, 18).stroke({ color: 0xffffff, width: 2, alpha: 0.65 });
+    g.circle(cp.x, cp.y, 8).fill({ color: 0x40c0ff, alpha: 0.85 });
   }
 }
 

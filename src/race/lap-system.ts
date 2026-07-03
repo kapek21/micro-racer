@@ -2,8 +2,8 @@ import type { RacerState } from '../core/types.js';
 import type { TrackSample } from '../physics/track-math.js';
 import { nearestTrackSample } from '../physics/track-math.js';
 
-export function updateLapProgress(racer: RacerState, samples: TrackSample[], lapCount: number): void {
-  if (racer.finished) return;
+export function updateLapProgress(racer: RacerState, samples: TrackSample[], lapCount: number): boolean {
+  if (racer.finished) return false;
   const prev = racer.lapProgress;
   const s = nearestTrackSample(samples, racer.x, racer.y);
   racer.lapProgress = s.progress;
@@ -12,12 +12,14 @@ export function updateLapProgress(racer: RacerState, samples: TrackSample[], lap
   // Cross finish line (progress wrap near start)
   if (prev > 0.82 && s.progress < 0.18 && racer.lap > 0) {
     racer.lap += 1;
-    if (racer.lap >= lapCount) {
-      racer.finished = true;
-    }
-  } else if (prev > 0.82 && s.progress < 0.18 && racer.lap === 0 && racer.totalProgress > 0.35) {
-    racer.lap = 1;
+    if (racer.lap >= lapCount) racer.finished = true;
+    return true;
   }
+  if (prev > 0.82 && s.progress < 0.18 && racer.lap === 0 && racer.totalProgress > 0.35) {
+    racer.lap = 1;
+    return true;
+  }
+  return false;
 }
 
 export function rankRacers(racers: RacerState[]): void {

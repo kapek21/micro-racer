@@ -36,6 +36,12 @@ import {
   tickCheckpointRush,
   tickEliminationCamera,
 } from './mode-logic.js';
+import {
+  finalizeRaceScore,
+  initRaceTiming,
+  onLapComplete,
+  tickRaceTiming,
+} from './sector-timing.js';
 
 let samplesCache: TrackSample[] = [];
 
@@ -66,7 +72,7 @@ export function createRaceState(
 
   const firstCp = track.checkpoints[0];
 
-  return {
+  const state: RaceState = {
     phase: 'countdown',
     mode,
     trackId: track.id,
@@ -88,11 +94,23 @@ export function createRaceState(
     checkpointDeadlineMs: firstCp?.deadlineMs ?? Infinity,
     bestLapMs: Infinity,
     currentLapStartMs: 0,
+    currentLapMs: 0,
+    lapTimes: [],
+    sectorSplits: [],
+    raceScore: 0,
+    deltaParMs: 0,
+    nextCheckpointLabel: '',
+    nextCheckpointDeadlineMs: Infinity,
+    lastSectorMs: 0,
+    parTimeMs: 0,
+    targetLapMs: 0,
     offensivePickupsAllowed: modeCfg.offensivePickups,
     hazardIntensity: mode === 'hazard_run' ? 1.2 : 1,
     gimmickState: createGimmickState(),
     empUsesThisRace: 0,
   };
+  initRaceTiming(state, track);
+  return state;
 }
 
 function makeRacer(
@@ -142,6 +160,9 @@ function makeRacer(
     eliminationStrikes: 0,
     eliminated: false,
     checkpointIndex: 0,
+    lastCheckpointCrossMs: -9999,
+    elevationGrade: 0,
+    onRamp: false,
     tokensCollected: 0,
   };
 }
@@ -230,9 +251,14 @@ export function tickRace(
     tryCollectToken(racer, state.tokens);
 
     if (state.mode !== 'checkpoint_rush') {
-      updateLapProgress(racer, samples, state.lapCount);
+      const lapDone = updateLapProgress(racer, samples, state.lapCount);
+      if (lapDone && racer.isPlayer) onLapComplete(state, racer, track);
       if (racer.finished && racer.finishTimeMs === 0) racer.finishTimeMs = state.timeMs;
     }
+  }
+
+  if (state.mode !== 'checkpoint_rush') {
+    tickRaceTiming(state, track, samples);
   }
 
   for (let i = 0; i < state.racers.length; i++) {
@@ -255,7 +281,11 @@ export function tickRace(
   if (isRaceComplete(state)) {
     state.phase = 'finished';
     const player = playerRacer(state);
-    state.stylePoints = computeStylePoints(player, player.position);
+    if (state.mode !== 'checkpoint_rush') {
+      finalizeRaceScore(state, player);
+    } else {
+      state.stylePoints = computeStylePoints(player, player.position);
+    }
     state.coinsEarned = computeCoins(state);
     const won =
       player.position === 1 ||
