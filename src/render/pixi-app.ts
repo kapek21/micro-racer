@@ -35,7 +35,7 @@ export class PixiApp {
     if (!this.host) return;
     const w = this.host.clientWidth;
     const h = this.host.clientHeight;
-    this.baseScale = Math.min(w / WORLD_W, h / WORLD_H) * 1.04;
+    this.baseScale = Math.min(w / WORLD_W, h / WORLD_H) * 0.98;
     this.applyViewportTransform();
   }
 

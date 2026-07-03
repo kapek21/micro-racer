@@ -1,11 +1,13 @@
 import { WORLD_H, WORLD_W } from '../core/types.js';
 
-/** Chase camera: close 3/4 view with pitch, damped rotation to reduce motion sickness. */
+/**
+ * Chase camera: rotates world so the car faces up.
+ * Pivot sits slightly ahead of the car (lower-third framing).
+ */
 export class RaceCamera {
   private x = WORLD_W * 0.5;
   private y = WORLD_H * 0.5;
   private zoom = 1;
-  private pitch = 0.58;
   private rotation = 0;
   private shakeMs = 0;
   private shakeMag = 0;
@@ -15,6 +17,7 @@ export class RaceCamera {
     this.x = x;
     this.y = y;
     this.rotation = 0;
+    this.zoom = 1;
   }
 
   setChase(enabled: boolean): void {
@@ -37,12 +40,11 @@ export class RaceCamera {
     const dt = dtMs / 1000;
     const useChase = this.chase && mode === 'player';
 
-    // Pivot well ahead so the car sits in the lower third (close chase view)
-    const look = useChase ? 175 + speed * 0.1 : mode === 'player' ? 80 + speed * 0.08 : 0;
+    const look = useChase ? 115 + speed * 0.07 : mode === 'player' ? 50 + speed * 0.06 : 0;
     const targetX = tx + Math.cos(angle) * look;
     const targetY = ty + Math.sin(angle) * look;
 
-    const posSmooth = mode === 'player' ? 6.5 : 4;
+    const posSmooth = useChase ? 8 : 5;
     const tPos = 1 - Math.exp(-posSmooth * dt);
     this.x += (targetX - this.x) * tPos;
     this.y += (targetY - this.y) * tPos;
@@ -52,25 +54,20 @@ export class RaceCamera {
       let diff = targetRot - this.rotation;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      // Slower rotation tracking = less head-spin on tight bends
-      const rotSmooth = 2.4;
-      let tRot = 1 - Math.exp(-rotSmooth * dt);
-      const maxStep = 2.2 * dt;
-      tRot = Math.min(tRot, maxStep / Math.max(0.001, Math.abs(diff)));
+      const rotSmooth = 5.5;
+      const tRot = 1 - Math.exp(-rotSmooth * dt);
       this.rotation += diff * tRot;
     } else {
-      this.rotation += (0 - this.rotation) * tPos * 0.4;
+      this.rotation += (0 - this.rotation) * tPos * 0.6;
     }
 
     const targetZoom = useChase
-      ? 1.82 + Math.min(speed, 380) * 0.00012
+      ? 1.38 + Math.min(speed, 400) * 0.00018
       : mode === 'player'
-        ? 1.35 + Math.min(speed, 380) * 0.0001
+        ? 1.12 + Math.min(speed, 400) * 0.00012
         : 1;
-    const targetPitch = useChase ? 0.58 : 0.72;
-    const tZoom = 1 - Math.exp(-5 * dt);
+    const tZoom = 1 - Math.exp(-6 * dt);
     this.zoom += (targetZoom - this.zoom) * tZoom;
-    this.pitch += (targetPitch - this.pitch) * tZoom;
 
     if (this.shakeMs > 0) {
       this.shakeMs -= dtMs;
@@ -80,6 +77,7 @@ export class RaceCamera {
 
   apply(container: {
     pivot: { set(x: number, y: number): void };
+    position: { set(x: number, y: number): void };
     scale: { set(x: number, y: number): void };
     skew: { set(x: number, y: number): void };
     rotation: number;
@@ -91,10 +89,13 @@ export class RaceCamera {
       ox = (Math.random() - 0.5) * this.shakeMag * f;
       oy = (Math.random() - 0.5) * this.shakeMag * f;
     }
-    container.rotation = this.rotation;
-    container.skew.set(0.06, 0);
+
     container.pivot.set(this.x + ox, this.y + oy);
-    container.scale.set(this.zoom, this.zoom * this.pitch);
+    container.rotation = this.rotation;
+    container.scale.set(this.zoom, this.zoom);
+    container.skew.set(0, 0);
+    // Slight downward shift — car sits in lower third without skew/distort
+    container.position.set(0, 28);
   }
 
   get position(): { x: number; y: number } {

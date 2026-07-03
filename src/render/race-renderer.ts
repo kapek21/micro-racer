@@ -46,6 +46,7 @@ export class RaceRenderer {
   private prevActivePickups = new Set<string>();
   private prevPlayerSpeed = 0;
   private prevPlayerEmpSlow = 0;
+  private prevPhase: RaceState['phase'] = 'menu';
 
   private constructor(pixi: PixiApp, atlas: SpriteAtlas) {
     this.pixi = pixi;
@@ -87,6 +88,11 @@ export class RaceRenderer {
     tickAtmosphereParticles(this.particles, track, this.t);
 
     const player = state.racers.find((r) => r.isPlayer);
+    if (state.phase === 'countdown' && this.prevPhase !== 'countdown' && player) {
+      this.camera.reset(player.x, player.y);
+    }
+    this.prevPhase = state.phase;
+
     const follow = state.mode === 'elimination_camera' ? leaderRacer(state.racers) : player;
     if (follow) {
       this.camera.follow(
