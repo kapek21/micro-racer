@@ -1,7 +1,8 @@
 import { Texture } from 'pixi.js';
-import { BIOME_SPRITE_URLS } from '../config/asset-paths.js';
+import { BIOME_SPRITE_URLS, TABLE_PHOTO_URLS } from '../config/asset-paths.js';
 import { VEHICLES } from '../config/vehicles.js';
 import { createSpriteAtlas, type SpriteAtlas } from './sprite-atlas.js';
+import { setTablePhotoTextures } from './table-photo.js';
 
 const KEY = { r: 6, g: 10, b: 20 };
 const KEY_THRESHOLD = 38;
@@ -95,6 +96,21 @@ async function loadBiomes(): Promise<Record<string, Texture>> {
   return biomes;
 }
 
+async function loadTablePhotos(): Promise<Record<string, Texture>> {
+  const tables: Record<string, Texture> = {};
+  await Promise.all(
+    Object.entries(TABLE_PHOTO_URLS).map(async ([biome, url]) => {
+      try {
+        const img = await loadImage(url);
+        tables[biome] = Texture.from(img);
+      } catch {
+        console.warn(`[assets] table photo missing: ${biome}`);
+      }
+    }),
+  );
+  return tables;
+}
+
 export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
   try {
     const [
@@ -145,6 +161,8 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
     }
 
     const biomes = { ...procedural.biomes, ...(await loadBiomes()) };
+    const tables = await loadTablePhotos();
+    setTablePhotoTextures(tables);
 
     return {
       ...procedural,
@@ -160,6 +178,7 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
       boostPad,
       boostPadGlow,
       biomes,
+      tables,
     };
   } catch (err) {
     console.warn('[assets] PNG load failed, using procedural sprites', err);

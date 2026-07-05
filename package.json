@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "assets:biomes": "python3 scripts/generate_biome_pngs.py",
+    "assets:tables": "python3 scripts/generate_table_photos.py",
+    "assets:all": "npm run assets:tables && npm run assets:biomes",
     "preview": "vite preview --port 5190",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts"

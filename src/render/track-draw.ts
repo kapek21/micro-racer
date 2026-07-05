@@ -3,7 +3,7 @@ import type { TrackDef } from '../core/types.js';
 import type { TrackSample } from '../physics/track-math.js';
 import { tableTheme } from '../config/table-themes.js';
 import type { ProceduralAssets } from './sprite-atlas.js';
-import { tablePhotoTexture } from './table-photo.js';
+import { tablePhotoTexture, hasTablePhotoPngs } from './table-photo.js';
 
 const WORLD_W = 1200;
 const WORLD_H = 800;
@@ -17,9 +17,9 @@ export function drawBiome(g: Graphics, track: TrackDef, t: number, _assets: Proc
 
   // Live lamp flicker overlay
   const pulse = 0.5 + 0.5 * Math.sin(t * 0.0012);
-  g.circle(600, 340, 300).fill({ color: theme.lampColor, alpha: 0.03 + pulse * 0.02 });
+  g.circle(600, 340, 300).fill({ color: theme.lampColor, alpha: 0.02 + pulse * 0.015 });
 
-  drawTableClutter(g, track, t);
+  if (!hasTablePhotoPngs()) drawTableClutter(g, track, t);
 }
 
 function drawTableClutter(g: Graphics, track: TrackDef, t: number): void {

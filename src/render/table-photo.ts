@@ -1,17 +1,32 @@
 import { Texture } from 'pixi.js';
 import { tableTheme, type TableTheme } from '../config/table-themes.js';
 
-const PHOTO_VERSION = 3;
 const cache = new Map<string, Texture>();
+let pngLoaded = false;
+
+/** Called from asset-loader after PNG table photos are loaded. */
+export function setTablePhotoTextures(textures: Record<string, Texture>): void {
+  cache.clear();
+  for (const [k, v] of Object.entries(textures)) {
+    cache.set(k, v);
+  }
+  pngLoaded = Object.keys(textures).length > 0;
+}
 
 export function tablePhotoTexture(biome: string): Texture {
-  const key = `${biome}_v${PHOTO_VERSION}`;
+  const png = cache.get(biome) ?? cache.get('city');
+  if (png) return png;
+  const key = `_proc_${biome}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const theme = tableTheme(biome);
   const tex = Texture.from(renderTableCanvas(theme, biome));
   cache.set(key, tex);
   return tex;
+}
+
+export function hasTablePhotoPngs(): boolean {
+  return pngLoaded;
 }
 
 function renderTableCanvas(theme: TableTheme, biome: string): HTMLCanvasElement {
@@ -44,13 +59,12 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, w: number, h: number): voi
   g.addColorStop(1, '#0a0804');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
-  // Parquet planks
   for (let y = 0; y < h; y += 14) {
     const shade = 0.06 + (y % 28) * 0.004;
     ctx.fillStyle = `rgba(80,55,30,${shade})`;
     ctx.fillRect(0, y, w, 7);
     for (let x = (y % 28); x < w; x += 56) {
-      ctx.strokeStyle = `rgba(0,0,0,${0.12 + (x % 112) * 0.0005})`;
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -88,7 +102,6 @@ function drawWoodRailPhoto(
   ctx.fillStyle = g;
   roundRect(ctx, x, y, w, h, 14);
   ctx.fill();
-  // Grain
   for (let i = 0; i < 40; i++) {
     const gy = y + 8 + (i / 40) * (h - 16);
     ctx.strokeStyle = `rgba(0,0,0,${0.06 + (i % 3) * 0.03})`;
@@ -98,7 +111,6 @@ function drawWoodRailPhoto(
     ctx.bezierCurveTo(x + w * 0.3, gy + 2, x + w * 0.7, gy - 1, x + w - 6, gy + 1);
     ctx.stroke();
   }
-  // Top bevel highlight
   ctx.strokeStyle = 'rgba(255,255,255,0.22)';
   ctx.lineWidth = 3;
   roundRect(ctx, x + 5, y + 4, w - 10, h - 12, 10);
@@ -107,12 +119,10 @@ function drawWoodRailPhoto(
   ctx.lineWidth = 2;
   roundRect(ctx, x + 36, y + 32, w - 72, h - 64, 8);
   ctx.stroke();
-  // Inner rail shadow (ambient occlusion)
   ctx.strokeStyle = 'rgba(0,0,0,0.25)';
   ctx.lineWidth = 6;
   roundRect(ctx, x + 38, y + 34, w - 76, h - 68, 7);
   ctx.stroke();
-  // Specular strip on rail top
   ctx.strokeStyle = 'rgba(255,230,200,0.35)';
   ctx.lineWidth = 2;
   roundRect(ctx, x + 8, y + 6, w - 16, h - 14, 11);
@@ -126,7 +136,7 @@ function drawSurfacePhoto(
   w: number,
   h: number,
   theme: TableTheme,
-  biome: string,
+  _biome: string,
 ): void {
   const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
   const base = ctx.createRadialGradient(x + w * 0.5, y + h * 0.45, 40, x + w * 0.5, y + h * 0.45, w * 0.75);
@@ -136,60 +146,18 @@ function drawSurfacePhoto(
   ctx.fillStyle = base;
   roundRect(ctx, x, y, w, h, 10);
   ctx.fill();
-
-  switch (theme.texture) {
-    case 'felt':
-      drawFeltNoise(ctx, x, y, w, h);
-      break;
-    case 'wood':
-      drawWoodSurface(ctx, x, y, w, h, theme);
-      break;
-    case 'laminate':
-      drawLaminateSurface(ctx, x, y, w, h);
-      break;
-    case 'tile':
-      drawTileSurface(ctx, x, y, w, h);
-      break;
-    case 'concrete':
-      drawConcreteSurface(ctx, x, y, w, h);
-      break;
-    case 'grass':
-      drawGrassSurface(ctx, x, y, w, h);
-      break;
-  }
-
-  // Subtle biome wear
-  if (biome === 'kitchen') {
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    roundRect(ctx, x + 80, y + 60, w - 160, h - 120, 8);
-    ctx.fill();
-  }
+  if (theme.texture === 'felt') drawFeltNoise(ctx, x, y, w, h);
 }
 
 function drawFeltNoise(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
   ctx.save();
   roundRect(ctx, x, y, w, h, 10);
   ctx.clip();
-  for (let i = 0; i < 28000; i++) {
+  for (let i = 0; i < 12000; i++) {
     const px = x + Math.random() * w;
     const py = y + Math.random() * h;
-    const v = Math.random();
-    ctx.fillStyle = v > 0.5 ? `rgba(255,255,255,${Math.random() * 0.045})` : `rgba(0,0,0,${Math.random() * 0.055})`;
+    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
     ctx.fillRect(px, py, 1, 1 + Math.random() * 2);
-  }
-  for (let row = 0; row < h; row += 2) {
-    ctx.fillStyle = `rgba(0,0,0,${0.006 + (row % 4) * 0.002})`;
-    ctx.fillRect(x, y + row, w, 1);
-  }
-  // Brushed felt direction
-  for (let i = 0; i < 80; i++) {
-    const py = y + (i / 80) * h;
-    ctx.strokeStyle = `rgba(0,0,0,${0.015})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, py);
-    ctx.lineTo(x + w, py + Math.sin(i * 0.3) * 2);
-    ctx.stroke();
   }
   ctx.restore();
 }
@@ -205,95 +173,6 @@ function drawEdgeWear(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.restore();
 }
 
-function drawWoodSurface(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, _theme: TableTheme): void {
-  ctx.save();
-  roundRect(ctx, x, y, w, h, 10);
-  ctx.clip();
-  for (let i = 0; i < 50; i++) {
-    const gy = y + (i / 50) * h;
-    ctx.strokeStyle = `rgba(40,20,8,${0.05 + (i % 4) * 0.02})`;
-    ctx.lineWidth = 1 + (i % 3);
-    ctx.beginPath();
-    ctx.moveTo(x, gy);
-    ctx.bezierCurveTo(x + w * 0.25, gy + 3, x + w * 0.75, gy - 2, x + w, gy + 1);
-    ctx.stroke();
-  }
-  // Knot
-  ctx.fillStyle = 'rgba(60,30,10,0.15)';
-  ctx.beginPath();
-  ctx.ellipse(x + w * 0.7, y + h * 0.35, 18, 12, 0.4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawLaminateSurface(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-  ctx.save();
-  roundRect(ctx, x, y, w, h, 10);
-  ctx.clip();
-  for (let i = 0; i < 3000; i++) {
-    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.035})`;
-    ctx.fillRect(x + Math.random() * w, y + Math.random() * h, 2, 1);
-  }
-  ctx.restore();
-}
-
-function drawTileSurface(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-  const ts = 32;
-  ctx.save();
-  roundRect(ctx, x, y, w, h, 10);
-  ctx.clip();
-  for (let tx = 0; tx < w; tx += ts) {
-    for (let ty = 0; ty < h; ty += ts) {
-      const shade = ((tx / ts + ty / ts) % 2) * 0.03;
-      ctx.fillStyle = `rgba(255,255,255,${shade})`;
-      ctx.fillRect(x + tx, y + ty, ts - 1, ts - 1);
-    }
-  }
-  ctx.strokeStyle = 'rgba(80,90,100,0.25)';
-  ctx.lineWidth = 1;
-  for (let tx = 0; tx <= w; tx += ts) {
-    ctx.beginPath();
-    ctx.moveTo(x + tx, y);
-    ctx.lineTo(x + tx, y + h);
-    ctx.stroke();
-  }
-  for (let ty = 0; ty <= h; ty += ts) {
-    ctx.beginPath();
-    ctx.moveTo(x, y + ty);
-    ctx.lineTo(x + w, y + ty);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawConcreteSurface(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-  ctx.save();
-  roundRect(ctx, x, y, w, h, 10);
-  ctx.clip();
-  for (let i = 0; i < 5000; i++) {
-    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
-    ctx.fillRect(x + Math.random() * w, y + Math.random() * h, 1.5, 1.5);
-  }
-  ctx.restore();
-}
-
-function drawGrassSurface(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-  ctx.save();
-  roundRect(ctx, x, y, w, h, 10);
-  ctx.clip();
-  for (let i = 0; i < 4000; i++) {
-    const px = x + Math.random() * w;
-    const py = y + Math.random() * h;
-    ctx.strokeStyle = `rgba(${30 + Math.random() * 40},${100 + Math.random() * 50},${40 + Math.random() * 20},0.4)`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(px, py);
-    ctx.lineTo(px + (Math.random() - 0.5) * 4, py - 2 - Math.random() * 5);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
 function drawLampPool(ctx: CanvasRenderingContext2D, w: number, h: number, theme: TableTheme): void {
   const g = ctx.createRadialGradient(w * 0.5, h * 0.42, 20, w * 0.5, h * 0.42, w * 0.55);
   g.addColorStop(0, hexAlpha(theme.lampColor, 0.22));
@@ -301,9 +180,6 @@ function drawLampPool(ctx: CanvasRenderingContext2D, w: number, h: number, theme
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = 'rgba(0,0,0,0.12)';
-  ctx.fillRect(0, 0, w, 60);
-  ctx.fillRect(0, h - 80, w, 80);
 }
 
 function drawPocketsPhoto(ctx: CanvasRenderingContext2D, theme: TableTheme): void {
@@ -319,10 +195,6 @@ function drawPocketsPhoto(ctx: CanvasRenderingContext2D, theme: TableTheme): voi
     ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(px, py, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,200,100,0.12)';
-    ctx.beginPath();
-    ctx.arc(px - 2, py - 2, r * 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
 }

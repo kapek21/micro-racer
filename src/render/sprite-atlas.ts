@@ -28,6 +28,7 @@ export interface SpriteAtlas {
   boostPadGlow: Texture;
   conveyor: Texture;
   biomes: Record<string, Texture>;
+  tables: Record<string, Texture>;
   powerups: Record<string, Texture>;
 }
 
@@ -66,6 +67,7 @@ export function createSpriteAtlas(): SpriteAtlas {
     boostPadGlow: canvasTex(drawBoostPadGlow, 68, 36),
     conveyor: canvasTex(drawConveyor, 64, 28),
     biomes: createBiomeTextures(192),
+    tables: {},
     powerups,
   };
 }

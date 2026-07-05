@@ -6,6 +6,19 @@ export const VEHICLE_SPRITE_URLS: Record<string, string> = {
   photon_racer: '/assets/sprites/vehicles/photon_racer.png',
 };
 
+export const TABLE_PHOTO_URLS: Record<string, string> = {
+  kitchen: '/assets/sprites/tables/kitchen.png',
+  roof: '/assets/sprites/tables/roof.png',
+  garden: '/assets/sprites/tables/garden.png',
+  garage: '/assets/sprites/tables/garage.png',
+  security: '/assets/sprites/tables/security.png',
+  warehouse: '/assets/sprites/tables/warehouse.png',
+  living: '/assets/sprites/tables/living.png',
+  balcony: '/assets/sprites/tables/balcony.png',
+  desk: '/assets/sprites/tables/desk.png',
+  city: '/assets/sprites/tables/city.png',
+};
+
 export const BIOME_SPRITE_URLS: Record<string, string> = {
   kitchen_island: '/assets/sprites/biomes/kitchen_island.png',
   kitchen_fridge: '/assets/sprites/biomes/kitchen_fridge.png',
