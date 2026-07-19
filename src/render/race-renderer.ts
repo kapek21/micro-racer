@@ -156,12 +156,9 @@ export class RaceRenderer {
       if (this.raceBgTrackId !== track.id) {
         this.raceBgTrackId = track.id;
         this.raceBg.texture = trackArt;
-        // Cover-fit Lovable art into the 1200×800 world
-        const tw = trackArt.width || 1;
-        const th = trackArt.height || 1;
-        const scale = Math.max(WORLD_W / tw, WORLD_H / th);
-        this.raceBg.width = tw * scale;
-        this.raceBg.height = th * scale;
+        // Stretch Lovable art to the physics world so the figure-8 center matches 600×400.
+        this.raceBg.width = WORLD_W;
+        this.raceBg.height = WORLD_H;
       }
       this.raceBg.visible = true;
       this.layers.bg.clear();
