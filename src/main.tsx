@@ -3,21 +3,22 @@ import { createRoot } from 'react-dom/client';
 import { GameLoop } from './core/game-loop.js';
 import { trackById } from './config/tracks/index.js';
 import { gameModeById } from './config/game-modes.js';
+import { composeVehicle, SURFACE_LABELS } from './config/parts.js';
 import { InputManager } from './input/input-manager.js';
 import { PixiApp } from './render/pixi-app.js';
 import { RaceRenderer } from './render/race-renderer.js';
 import { createRaceState, playerRacer, tickRace } from './race/race-sim.js';
 import type { RaceState } from './core/types.js';
 import { heldLabel } from './powerups/runtime.js';
-import { powerUpVisual } from './config/powerup-visuals.js';
 import { Hud } from './ui/hud.js';
 import { useHudStore } from './ui/hud-store.js';
-import { applyRaceResult } from './meta/profile.js';
+import { applyRaceResult, equippedTrailId } from './meta/profile.js';
 import { GameAudio, RaceAudioController } from './audio/game-audio.js';
 import { bindGameAudio, unbindGameAudio } from './audio/audio-bind.js';
+import { MetabotBridge } from './platform/metabot.js';
 import './index.css';
 
-function syncHud(state: RaceState, trackName: string, modeName: string, checkpointTotal: number): void {
+function syncHud(state: RaceState, trackName: string, modeName: string, surfaceLabel: string): void {
   const player = playerRacer(state);
   useHudStore.getState().setSnapshot({
     phase: state.phase,
@@ -32,39 +33,34 @@ function syncHud(state: RaceState, trackName: string, modeName: string, checkpoi
     boostActive: player.boostMs > 0,
     shieldActive: player.shieldMs > 0,
     heldPowerUp: heldLabel(player.heldPowerUp),
-    heldPowerUpSymbol: player.heldPowerUp ? powerUpVisual(player.heldPowerUp.id).symbol : '',
-    heldPowerUpCharges: player.heldPowerUp?.charges ?? 0,
     coinsEarned: state.coinsEarned,
     stylePoints: state.stylePoints,
+    buildPoints: state.buildPoints,
+    timePoints: state.timePoints,
+    raceScore: state.raceScore,
     tokensCollected: player.tokensCollected,
     trackLabel: trackName,
     modeLabel: modeName,
+    surfaceLabel,
     eliminationStrikes: player.eliminationStrikes,
-    checkpointIndex: player.checkpointIndex,
-    checkpointTotal,
-    currentLapMs: state.currentLapMs,
-    bestLapMs: state.bestLapMs,
-    deltaParMs: state.deltaParMs,
-    nextCheckpointLabel: state.nextCheckpointLabel,
-    nextCheckpointDeadlineMs: state.nextCheckpointDeadlineMs,
-    raceScore: state.raceScore,
-    parTimeMs: state.parTimeMs,
-    targetLapMs: state.targetLapMs,
+    checkpointIndex: 0,
+    checkpointTotal: 0,
   });
 }
 
 function App(): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<RaceState | null>(null);
-  const trackRef = useRef(trackById('smart_kitchen'));
+  const trackRef = useRef(trackById('kitchen_8'));
   const inputRef = useRef(new InputManager());
   const finishedRef = useRef(false);
+  const rendererRef = useRef<RaceRenderer | null>(null);
+  const bridgeRef = useRef<MetabotBridge | null>(null);
 
-  const selectedVehicle = useHudStore((s) => s.snapshot.selectedVehicleId);
   const selectedTrack = useHudStore((s) => s.snapshot.selectedTrackId);
-  const selectedMode = useHudStore((s) => s.snapshot.selectedModeId);
   const phase = useHudStore((s) => s.snapshot.phase);
   const assetsReady = useHudStore((s) => s.snapshot.assetsReady);
+  const buildOpen = useHudStore((s) => s.snapshot.buildOpen);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,8 +74,10 @@ function App(): JSX.Element {
     const audio = new GameAudio();
     bindGameAudio(audio);
     const raceAudio = new RaceAudioController(audio);
+    const bridge = new MetabotBridge();
+    bridgeRef.current = bridge;
+    bridge.start();
     input.attach();
-    let renderer: RaceRenderer | null = null;
 
     const unlockAudio = (): void => {
       audio.unlock();
@@ -94,7 +92,9 @@ function App(): JSX.Element {
         pixi.destroy();
         return;
       }
-      renderer = await RaceRenderer.create(pixi);
+      const renderer = await RaceRenderer.create(pixi);
+      rendererRef.current = renderer;
+      renderer.setPlayerTrail(equippedTrailId(useHudStore.getState().profile));
       useHudStore.getState().setSnapshot({ assetsReady: true });
       pixi.resize();
       ro = new ResizeObserver(() => pixi.resize());
@@ -119,21 +119,30 @@ function App(): JSX.Element {
               vehicleId: player.vehicleId,
               mode: state.mode,
               position: player.position,
-              won: player.position === 1 || (state.mode === 'time_trial' && player.finished),
+              won: player.position === 1,
               coinsEarned: state.coinsEarned,
               tokensCollected: player.tokensCollected,
               finishTimeMs: player.finishTimeMs,
-              empUses: state.empUsesThisRace,
+              buildPoints: state.buildPoints,
+              timePoints: state.timePoints,
+              raceScore: state.raceScore,
             });
             useHudStore.getState().reloadProfile();
+            bridge.reportRaceFinished(state.raceScore, {
+              position: player.position,
+              buildPoints: state.buildPoints,
+              timePoints: state.timePoints,
+              finishTimeMs: player.finishTimeMs,
+              trackId: track.id,
+            });
           }
 
-          syncHud(state, track.namePl, modeCfg.namePl, track.checkpoints.length);
+          syncHud(state, track.namePl, modeCfg.namePl, SURFACE_LABELS[track.surface]);
         },
         () => {
           const state = stateRef.current;
           const track = trackRef.current;
-          if (state && renderer) renderer.sync(state, track, 1000 / 60);
+          if (state && rendererRef.current) rendererRef.current.sync(state, track, 1000 / 60);
         },
       );
       loop.start();
@@ -146,25 +155,51 @@ function App(): JSX.Element {
       input.detach();
       audio.destroy();
       unbindGameAudio();
+      bridge.stop();
       window.removeEventListener('pointerdown', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
       pixi.destroy();
+      rendererRef.current = null;
     };
   }, []);
 
   const startRace = (): void => {
     const track = trackById(selectedTrack);
+    const build = useHudStore.getState().snapshot.pendingBuild;
+    if (!build) {
+      useHudStore.getState().setSnapshot({ buildOpen: true });
+      return;
+    }
+    const composed = composeVehicle(
+      build.wheelsId,
+      build.bodyId,
+      build.engineId,
+      track.surface,
+      build.skill,
+      'player_build',
+    );
     trackRef.current = track;
     finishedRef.current = false;
-    stateRef.current = createRaceState(track, selectedVehicle, selectedMode);
-    const modeCfg = gameModeById(selectedMode);
-    syncHud(stateRef.current, track.namePl, modeCfg.namePl, track.checkpoints.length);
+    rendererRef.current?.setPlayerTrail(equippedTrailId(useHudStore.getState().profile));
+    stateRef.current = createRaceState(
+      track,
+      composed.vehicle.id,
+      'standard_race',
+      composed.buildPoints,
+    );
+    const modeCfg = gameModeById('standard_race');
+    syncHud(stateRef.current, track.namePl, modeCfg.namePl, SURFACE_LABELS[track.surface]);
   };
 
   const backToMenu = (): void => {
     stateRef.current = null;
     finishedRef.current = false;
-    useHudStore.getState().setSnapshot({ phase: 'menu', message: '' });
+    useHudStore.getState().setSnapshot({
+      phase: 'menu',
+      message: '',
+      pendingBuild: null,
+      buildOpen: false,
+    });
   };
 
   return (
@@ -183,9 +218,11 @@ function App(): JSX.Element {
       )}
       <Hud
         onStart={startRace}
-        onRestart={startRace}
+        onRestart={() => {
+          useHudStore.getState().setSnapshot({ buildOpen: true, pendingBuild: null });
+        }}
         onMenu={backToMenu}
-        racing={phase !== 'menu'}
+        racing={phase !== 'menu' && !buildOpen}
       />
     </div>
   );

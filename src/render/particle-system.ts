@@ -52,16 +52,25 @@ export class ParticleSystem {
     }
   }
 
-  emitExhaust(x: number, y: number, angle: number, intensity: number): void {
+  emitExhaust(
+    x: number,
+    y: number,
+    angle: number,
+    intensity: number,
+    trail: 'default' | 'spark' | 'holo' = 'default',
+  ): void {
     const bx = x - Math.cos(angle) * 14;
     const by = y - Math.sin(angle) * 14;
-    const count = intensity > 1.2 ? 4 : 2;
+    const count = trail === 'default' ? (intensity > 1.2 ? 4 : 2) : intensity > 1.2 ? 6 : 3;
     for (let i = 0; i < count; i++) {
-      const spread = (Math.random() - 0.5) * 0.7;
+      const spread = (Math.random() - 0.5) * (trail === 'holo' ? 1.1 : 0.7);
       const spd = 40 + intensity * 70 + Math.random() * 30;
       const a = angle + Math.PI + spread;
       const life = 180 + Math.random() * 160;
       const boost = intensity > 1.2;
+      let color = boost ? 0xff6030 : intensity > 0.6 ? 0x60d0ff : 0x8898a8;
+      if (trail === 'spark') color = boost ? 0xffd040 : 0xffc060;
+      if (trail === 'holo') color = boost ? 0xff40ff : 0x40ffe0;
       this.push({
         x: bx,
         y: by,
@@ -69,10 +78,10 @@ export class ParticleSystem {
         vy: Math.sin(a) * spd,
         life,
         maxLife: life,
-        size: 2 + intensity * 3.5,
-        color: boost ? 0xff6030 : intensity > 0.6 ? 0x60d0ff : 0x8898a8,
-        alpha: 0.75,
-        kind: boost ? 'streak' : 'circle',
+        size: 2 + intensity * 3.5 + (trail === 'spark' ? 1 : 0),
+        color,
+        alpha: trail === 'holo' ? 0.9 : 0.75,
+        kind: boost || trail !== 'default' ? 'streak' : 'circle',
       });
     }
   }

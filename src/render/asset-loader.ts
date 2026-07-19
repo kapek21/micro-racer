@@ -1,8 +1,12 @@
 import { Texture } from 'pixi.js';
-import { BIOME_SPRITE_URLS, TABLE_PHOTO_URLS } from '../config/asset-paths.js';
-import { VEHICLES } from '../config/vehicles.js';
+import {
+  AI_VEHICLE_SPRITE_URLS,
+  BIOME_SPRITE_URLS,
+  POWERUP_ICON_URLS,
+  VEHICLE_SPRITE_URLS,
+} from '../config/asset-paths.js';
+import { POWERUPS } from '../config/powerups.js';
 import { createSpriteAtlas, type SpriteAtlas } from './sprite-atlas.js';
-import { setTablePhotoTextures } from './table-photo.js';
 
 const KEY = { r: 6, g: 10, b: 20 };
 const KEY_THRESHOLD = 38;
@@ -58,66 +62,78 @@ async function loadKeyedTexture(url: string, w: number, h = w): Promise<Texture>
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
 
   const imageData = ctx.getImageData(0, 0, w, h);
-  chromaKey(imageData);
+  // Only chroma-key when the image is mostly opaque (old Lovable scene frames).
+  let transparent = 0;
+  const px = imageData.data;
+  for (let i = 3; i < px.length; i += 4) {
+    if ((px[i] ?? 255) < 16) transparent += 1;
+  }
+  const alphaRatio = transparent / (w * h);
+  if (alphaRatio < 0.08) chromaKey(imageData);
   ctx.putImageData(imageData, 0, 0);
   return Texture.from(canvas);
 }
 
-const ASSET = {
-  vehicles: {
-    volt_mini_gt: '/assets/sprites/vehicles/volt_mini_gt.png',
-    sweep_x_buggy: '/assets/sprites/vehicles/sweep_x_buggy.png',
-    charge_van: '/assets/sprites/vehicles/charge_van.png',
-    photon_racer: '/assets/sprites/vehicles/photon_racer.png',
-  },
-  vacuum: '/assets/sprites/hazards/robot_vacuum.png',
-  mower: '/assets/sprites/hazards/robot_mower.png',
-  drone: '/assets/sprites/hazards/drone.png',
-  conveyor: '/assets/sprites/hazards/conveyor.png',
-  pickup: '/assets/sprites/pickups/powerup_crate.png',
-  pickupGlow: '/assets/sprites/pickups/powerup_crate_glow.png',
-  token: '/assets/sprites/pickups/token.png',
-  mine: '/assets/sprites/pickups/mine.png',
-  boostPad: '/assets/sprites/pickups/boost_pad.png',
-  boostPadGlow: '/assets/sprites/pickups/boost_pad_glow.png',
-} as const;
+async function tryKeyed(
+  url: string,
+  w: number,
+  h = w,
+): Promise<Texture | null> {
+  try {
+    return await loadKeyedTexture(url, w, h);
+  } catch {
+    return null;
+  }
+}
 
 async function loadBiomes(): Promise<Record<string, Texture>> {
   const biomes: Record<string, Texture> = {};
   await Promise.all(
     Object.entries(BIOME_SPRITE_URLS).map(async ([key, url]) => {
-      try {
-        biomes[key] = await loadKeyedTexture(url, 192, 192);
-      } catch {
-        console.warn(`[assets] biome sprite missing: ${key}`);
-      }
+      const tex = await tryKeyed(url, 160, 160);
+      if (tex) biomes[key] = tex;
+      else console.warn(`[assets] biome sprite missing: ${key}`);
     }),
   );
   return biomes;
 }
 
-async function loadTablePhotos(): Promise<Record<string, Texture>> {
-  const tables: Record<string, Texture> = {};
+async function loadVehicles(
+  procedural: SpriteAtlas,
+): Promise<Record<string, Texture>> {
+  const vehicles: Record<string, Texture> = { ...procedural.vehicles };
+  const urls: Record<string, string> = {
+    ...VEHICLE_SPRITE_URLS,
+    ...AI_VEHICLE_SPRITE_URLS,
+  };
   await Promise.all(
-    Object.entries(TABLE_PHOTO_URLS).map(async ([biome, url]) => {
-      try {
-        const img = await loadImage(url);
-        tables[biome] = Texture.from(img);
-      } catch {
-        console.warn(`[assets] table photo missing: ${biome}`);
-      }
+    Object.entries(urls).map(async ([id, url]) => {
+      const tex = await tryKeyed(url, 128, 128);
+      if (tex) vehicles[id] = tex;
     }),
   );
-  return tables;
+  return vehicles;
+}
+
+async function loadPowerupIcons(
+  procedural: SpriteAtlas,
+): Promise<Record<string, Texture>> {
+  const powerups: Record<string, Texture> = { ...procedural.powerups };
+  await Promise.all(
+    POWERUPS.map(async (p) => {
+      const url = POWERUP_ICON_URLS[p.id];
+      if (!url) return;
+      const tex = await tryKeyed(url, 56, 56);
+      if (tex) powerups[p.id] = tex;
+    }),
+  );
+  return powerups;
 }
 
 export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
   try {
+    const procedural = createSpriteAtlas();
     const [
-      volt,
-      sweep,
-      charge,
-      photon,
       vacuum,
       mower,
       drone,
@@ -128,57 +144,45 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
       mine,
       boostPad,
       boostPadGlow,
+      vehicles,
+      biomes,
+      powerups,
     ] = await Promise.all([
-      loadKeyedTexture(ASSET.vehicles.volt_mini_gt, 128, 128),
-      loadKeyedTexture(ASSET.vehicles.sweep_x_buggy, 128, 128),
-      loadKeyedTexture(ASSET.vehicles.charge_van, 128, 128),
-      loadKeyedTexture(ASSET.vehicles.photon_racer, 128, 128),
-      loadKeyedTexture(ASSET.vacuum, 96, 96),
-      loadKeyedTexture(ASSET.mower, 96, 96),
-      loadKeyedTexture(ASSET.drone, 96, 96),
-      loadKeyedTexture(ASSET.conveyor, 128, 56),
-      loadKeyedTexture(ASSET.pickup, 72, 72),
-      loadKeyedTexture(ASSET.pickupGlow, 72, 72),
-      loadKeyedTexture(ASSET.token, 64, 64),
-      loadKeyedTexture(ASSET.mine, 56, 56),
-      loadKeyedTexture(ASSET.boostPad, 128, 64),
-      loadKeyedTexture(ASSET.boostPadGlow, 128, 64),
+      tryKeyed('/assets/sprites/hazards/robot_vacuum.png', 96, 96),
+      tryKeyed('/assets/sprites/hazards/robot_mower.png', 96, 96),
+      tryKeyed('/assets/sprites/hazards/drone.png', 96, 96),
+      tryKeyed('/assets/sprites/hazards/conveyor.png', 128, 56),
+      tryKeyed('/assets/sprites/pickups/powerup_crate.png', 72, 72),
+      tryKeyed('/assets/sprites/pickups/powerup_crate_glow.png', 72, 72),
+      tryKeyed('/assets/sprites/pickups/token.png', 64, 64),
+      tryKeyed('/assets/sprites/pickups/mine.png', 56, 56),
+      tryKeyed('/assets/sprites/pickups/boost_pad.png', 128, 64),
+      tryKeyed('/assets/sprites/pickups/boost_pad_glow.png', 128, 64),
+      loadVehicles(procedural),
+      loadBiomes(),
+      loadPowerupIcons(procedural),
     ]);
 
-    const procedural = createSpriteAtlas();
-    const vehicles: Record<string, Texture> = {};
-    for (const v of VEHICLES) {
-      vehicles[v.id] =
-        v.id === 'volt_mini_gt'
-          ? volt
-          : v.id === 'sweep_x_buggy'
-            ? sweep
-            : v.id === 'charge_van'
-              ? charge
-              : v.id === 'photon_racer'
-                ? photon
-                : procedural.vehicles[v.id]!;
+    // If core race sprites failed entirely, fall back fully.
+    if (!vacuum || !pickup || !boostPad) {
+      console.warn('[assets] core PNG incomplete, mixing procedural fallbacks');
     }
-
-    const biomes = { ...procedural.biomes, ...(await loadBiomes()) };
-    const tables = await loadTablePhotos();
-    setTablePhotoTextures(tables);
 
     return {
       ...procedural,
       vehicles,
-      vacuum,
-      mower,
-      drone,
-      conveyor,
-      pickup,
-      pickupGlow,
-      token,
-      mine,
-      boostPad,
-      boostPadGlow,
+      vacuum: vacuum ?? procedural.vacuum,
+      mower: mower ?? procedural.mower,
+      drone: drone ?? procedural.drone,
+      conveyor: conveyor ?? procedural.conveyor,
+      pickup: pickup ?? procedural.pickup,
+      pickupGlow: pickupGlow ?? procedural.pickupGlow,
+      token: token ?? procedural.token,
+      mine: mine ?? procedural.mine,
+      boostPad: boostPad ?? procedural.boostPad,
+      boostPadGlow: boostPadGlow ?? procedural.boostPadGlow,
       biomes,
-      tables,
+      powerups,
     };
   } catch (err) {
     console.warn('[assets] PNG load failed, using procedural sprites', err);

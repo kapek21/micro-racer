@@ -1,11 +1,11 @@
 import type { RacerState } from '../core/types.js';
 import type { TrackSample } from '../physics/track-math.js';
-import { nearestTrackSample } from '../physics/track-math.js';
+import { nearestTrackSampleContinuous } from '../physics/track-math.js';
 
 export function updateLapProgress(racer: RacerState, samples: TrackSample[], lapCount: number): boolean {
   if (racer.finished) return false;
   const prev = racer.lapProgress;
-  const s = nearestTrackSample(samples, racer.x, racer.y);
+  const s = nearestTrackSampleContinuous(samples, racer.x, racer.y, prev);
   racer.lapProgress = s.progress;
   racer.totalProgress = racer.lap + s.progress;
 

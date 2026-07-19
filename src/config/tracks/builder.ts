@@ -1,5 +1,4 @@
-import type { TrackDef, Vec2 } from '../../core/types.js';
-import { refineCenterline } from './centerline-smooth.js';
+import type { SurfaceId, TrackDef, Vec2 } from '../../core/types.js';
 
 export interface TrackBlueprint {
   id: string;
@@ -12,12 +11,12 @@ export interface TrackBlueprint {
   supportsTimeTrial: boolean;
   hazardSets: string[];
   unlockedByDefault?: boolean;
-  parTimeMs?: number;
-  targetLapMs?: number;
   trackWidth?: number;
   centerline: Vec2[];
   bgColor: number;
   accentColor: number;
+  surface: SurfaceId;
+  parTimeMs: number;
   hazards?: TrackDef['hazards'];
   pickups?: TrackDef['pickups'];
   slipZones?: TrackDef['slipZones'];
@@ -26,13 +25,6 @@ export interface TrackBlueprint {
   gates?: TrackDef['gates'];
   cameraTraps?: TrackDef['cameraTraps'];
   tokens?: TrackDef['tokens'];
-  heatZones?: TrackDef['heatZones'];
-  photocells?: TrackDef['photocells'];
-  trafficSignals?: TrackDef['trafficSignals'];
-  rhythmSectors?: TrackDef['rhythmSectors'];
-  sprinklers?: TrackDef['sprinklers'];
-  trampolines?: TrackDef['trampolines'];
-  elevationZones?: TrackDef['elevationZones'];
 }
 
 function deriveStarts(centerline: Vec2[], trackWidth: number): { positions: Vec2[]; angles: number[] } {
@@ -51,8 +43,32 @@ function deriveStarts(centerline: Vec2[], trackWidth: number): { positions: Vec2
   return { positions, angles: [angle, angle, angle, angle] };
 }
 
+/**
+ * Bernoulli lemniscate (figure-8) sampled as a closed polyline.
+ */
+export function figure8Centerline(
+  cx: number,
+  cy: number,
+  scaleX: number,
+  scaleY: number,
+  segments = 80,
+): Vec2[] {
+  const pts: Vec2[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = (i / segments) * Math.PI * 2;
+    const sinT = Math.sin(t);
+    const cosT = Math.cos(t);
+    const den = 1 + sinT * sinT;
+    pts.push({
+      x: cx + (scaleX * cosT) / den,
+      y: cy + (scaleY * sinT * cosT) / den,
+    });
+  }
+  return pts;
+}
+
 export function buildTrack(b: TrackBlueprint): TrackDef {
-  const trackWidth = b.trackWidth ?? 110;
+  const trackWidth = b.trackWidth ?? 100;
   const starts = deriveStarts(b.centerline, trackWidth);
   return {
     id: b.id,
@@ -65,9 +81,9 @@ export function buildTrack(b: TrackBlueprint): TrackDef {
     supportsTimeTrial: b.supportsTimeTrial,
     hazardSets: b.hazardSets,
     unlockedByDefault: b.unlockedByDefault ?? false,
+    surface: b.surface,
     parTimeMs: b.parTimeMs,
-    targetLapMs: b.targetLapMs,
-    centerline: refineCenterline(b.centerline),
+    centerline: b.centerline,
     trackWidth,
     startPositions: starts.positions,
     startAngles: starts.angles,
@@ -81,17 +97,9 @@ export function buildTrack(b: TrackBlueprint): TrackDef {
     gates: b.gates ?? [],
     cameraTraps: b.cameraTraps ?? [],
     tokens: b.tokens ?? [],
-    heatZones: b.heatZones,
-    photocells: b.photocells,
-    trafficSignals: b.trafficSignals,
-    rhythmSectors: b.rhythmSectors,
-    sprinklers: b.sprinklers,
-    trampolines: b.trampolines,
-    elevationZones: b.elevationZones,
   };
 }
 
-/** Common pickup trio for a track. */
 export function defaultPickups(
   ids: [string, string, string],
   positions: [Vec2, Vec2, Vec2],
@@ -104,4 +112,9 @@ export function defaultPickups(
     y: positions[i]!.y,
     respawnMs: 8000 + i * 1000,
   }));
+}
+
+export function sampleOnFigure8(centerline: Vec2[], progress: number): Vec2 {
+  const idx = Math.floor(progress * (centerline.length - 1)) % (centerline.length - 1);
+  return centerline[Math.max(0, idx)] ?? centerline[0]!;
 }

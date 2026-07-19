@@ -2,16 +2,11 @@ export const WORLD_W = 1200;
 export const WORLD_H = 800;
 
 export type VehicleClass = 'balanced' | 'agile' | 'heavy' | 'speed';
-export type RacePhase = 'menu' | 'countdown' | 'racing' | 'finished';
+export type RacePhase = 'menu' | 'countdown' | 'racing' | 'finished' | 'building';
 export type PowerUpCategory = 'mobility' | 'offense' | 'defense' | 'utility';
 export type PowerUpRarity = 'common' | 'rare' | 'epic';
-export type GameModeId =
-  | 'standard_race'
-  | 'elimination_camera'
-  | 'time_trial'
-  | 'checkpoint_rush'
-  | 'hazard_run'
-  | 'battle_lap';
+export type GameModeId = 'standard_race';
+export type SurfaceId = 'asphalt' | 'gravel' | 'wet' | 'carpet' | 'metal' | 'dirt';
 
 export interface Vec2 {
   x: number;
@@ -55,21 +50,9 @@ export interface TrackConfig {
   supportsTimeTrial: boolean;
   hazardSets: string[];
   unlockedByDefault?: boolean;
-  /** Par czas całego wyścigu (ms) — cel do punktacji. */
-  parTimeMs?: number;
-  /** Docelowy czas jednego okrążenia (ms). */
-  targetLapMs?: number;
-}
-
-export interface ElevationZoneDef {
-  id: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  /** Ujemne = podjazd (wolniej), dodatnie = zjazd / rampa (szybciej). */
-  grade: number;
-  ramp?: boolean;
+  surface: SurfaceId;
+  /** Par finish time (ms) for 3 laps — used for time scoring. */
+  parTimeMs: number;
 }
 
 export interface CheckpointDef {
@@ -88,63 +71,6 @@ export interface GateDef {
   h: number;
   shortcut?: boolean;
   defaultOpen?: boolean;
-  trigger?: 'default' | 'photocell' | 'traffic' | 'rhythm' | 'blinds' | 'laser';
-}
-
-export interface HeatZoneDef {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  gripMult: number;
-  boostOnExit?: boolean;
-}
-
-export interface PhotocellDef {
-  id: string;
-  gateId: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  autoClose?: boolean;
-}
-
-export interface TrafficSignalDef {
-  id: string;
-  gateIds: string[];
-  cycleMs: number;
-  greenMs: number;
-  phaseOffsetMs?: number;
-}
-
-export interface RhythmSectorDef {
-  id: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  cycleMs: number;
-  activeMs: number;
-  phaseOffsetMs?: number;
-  gateId?: string;
-}
-
-export interface SprinklerDef {
-  id: string;
-  slipId: string;
-  cycleMs: number;
-  activeMs: number;
-  phaseOffsetMs?: number;
-}
-
-export interface TrampolineDef {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  angle: number;
-  impulse: number;
 }
 
 export interface CameraTrapDef {
@@ -187,14 +113,6 @@ export interface PickupSpawn {
   respawnMs: number;
 }
 
-export interface SlipZoneDef {
-  id?: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
 export interface TrackDef extends TrackConfig {
   centerline: Vec2[];
   trackWidth: number;
@@ -202,19 +120,12 @@ export interface TrackDef extends TrackConfig {
   startAngles: number[];
   hazards: HazardDef[];
   pickups: PickupSpawn[];
-  slipZones: SlipZoneDef[];
+  slipZones: { x: number; y: number; w: number; h: number }[];
   boostPads: { x: number; y: number; w: number; h: number }[];
   checkpoints: CheckpointDef[];
   gates: GateDef[];
   cameraTraps: CameraTrapDef[];
   tokens: TokenSpawn[];
-  heatZones?: HeatZoneDef[];
-  photocells?: PhotocellDef[];
-  trafficSignals?: TrafficSignalDef[];
-  rhythmSectors?: RhythmSectorDef[];
-  sprinklers?: SprinklerDef[];
-  trampolines?: TrampolineDef[];
-  elevationZones?: ElevationZoneDef[];
   bgColor: number;
   accentColor: number;
 }
@@ -277,9 +188,6 @@ export interface RacerState {
   eliminationStrikes: number;
   eliminated: boolean;
   checkpointIndex: number;
-  lastCheckpointCrossMs: number;
-  elevationGrade: number;
-  onRamp: boolean;
   tokensCollected: number;
 }
 
@@ -309,13 +217,6 @@ export interface TokenState {
   active: boolean;
 }
 
-export interface GimmickRuntimeState {
-  phase: number;
-  timers: Record<string, number>;
-  flags: Record<string, boolean>;
-  activeSlipIds: Set<string>;
-}
-
 export interface RaceState {
   phase: RacePhase;
   mode: GameModeId;
@@ -335,23 +236,13 @@ export interface RaceState {
   playerVehicleId: string;
   coinsEarned: number;
   stylePoints: number;
+  buildPoints: number;
+  timePoints: number;
+  raceScore: number;
   checkpointDeadlineMs: number;
   bestLapMs: number;
   currentLapStartMs: number;
-  currentLapMs: number;
-  lapTimes: number[];
-  sectorSplits: number[];
-  raceScore: number;
-  deltaParMs: number;
-  nextCheckpointLabel: string;
-  nextCheckpointDeadlineMs: number;
-  lastSectorMs: number;
-  parTimeMs: number;
-  targetLapMs: number;
   offensivePickupsAllowed: boolean;
-  hazardIntensity: number;
-  gimmickState: GimmickRuntimeState;
-  empUsesThisRace: number;
 }
 
 export interface PlayerInput {

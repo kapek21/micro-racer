@@ -12,6 +12,12 @@ function segLen(a: Vec2, b: Vec2): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
+function circularDist(a: number, b: number): number {
+  let d = Math.abs(a - b);
+  if (d > 0.5) d = 1 - d;
+  return d;
+}
+
 export function buildTrackSamples(track: TrackDef): TrackSample[] {
   const pts = track.centerline;
   const samples: TrackSample[] = [];
@@ -26,7 +32,7 @@ export function buildTrackSamples(track: TrackDef): TrackSample[] {
     const b = pts[i + 1]!;
     const len = segLen(a, b);
     const angle = Math.atan2(b.y - a.y, b.x - a.x);
-    const steps = Math.max(4, Math.ceil(len / 24));
+    const steps = Math.max(4, Math.ceil(len / 20));
     for (let s = 0; s < steps; s++) {
       const t = s / steps;
       samples.push({
@@ -53,6 +59,32 @@ export function nearestTrackSample(
     const d = (s.x - x) ** 2 + (s.y - y) ** 2;
     if (d < bestD) {
       bestD = d;
+      best = s;
+    }
+  }
+  return best;
+}
+
+/**
+ * Prefer samples near previous progress — critical at figure-8 crossing
+ * where two centerline segments occupy the same space.
+ */
+export function nearestTrackSampleContinuous(
+  samples: TrackSample[],
+  x: number,
+  y: number,
+  prevProgress: number,
+  window = 0.2,
+): TrackSample {
+  let best = samples[0]!;
+  let bestScore = Infinity;
+  for (const s of samples) {
+    const dProg = circularDist(s.progress, prevProgress);
+    const dist2 = (s.x - x) ** 2 + (s.y - y) ** 2;
+    const progPenalty = dProg > window ? (dProg - window) * (dProg - window) * 120_000 : dProg * dProg * 8_000;
+    const score = dist2 + progPenalty;
+    if (score < bestScore) {
+      bestScore = score;
       best = s;
     }
   }

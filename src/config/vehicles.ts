@@ -1,5 +1,13 @@
 import type { VehicleConfig } from '../core/types.js';
 
+/** Runtime registry for composed player builds + AI. */
+const registry = new Map<string, VehicleConfig>();
+
+export function registerVehicle(cfg: VehicleConfig): void {
+  registry.set(cfg.id, cfg);
+}
+
+/** Legacy catalog kept for cosmetics shop vehicleIds. */
 export const VEHICLES: VehicleConfig[] = [
   {
     id: 'volt_mini_gt',
@@ -63,7 +71,11 @@ export const VEHICLES: VehicleConfig[] = [
   },
 ];
 
+for (const v of VEHICLES) registerVehicle(v);
+
 export function vehicleById(id: string): VehicleConfig {
+  const dyn = registry.get(id);
+  if (dyn) return dyn;
   const v = VEHICLES.find((x) => x.id === id);
   if (!v) throw new Error(`Unknown vehicle: ${id}`);
   return v;

@@ -1,4 +1,4 @@
-/** Public URLs for vehicle menu previews (same PNGs as in-game). */
+/** Public URLs for vehicle menu previews and in-game sprites. */
 export const VEHICLE_SPRITE_URLS: Record<string, string> = {
   volt_mini_gt: '/assets/sprites/vehicles/volt_mini_gt.png',
   sweep_x_buggy: '/assets/sprites/vehicles/sweep_x_buggy.png',
@@ -6,17 +6,11 @@ export const VEHICLE_SPRITE_URLS: Record<string, string> = {
   photon_racer: '/assets/sprites/vehicles/photon_racer.png',
 };
 
-export const TABLE_PHOTO_URLS: Record<string, string> = {
-  kitchen: '/assets/sprites/tables/kitchen.png',
-  roof: '/assets/sprites/tables/roof.png',
-  garden: '/assets/sprites/tables/garden.png',
-  garage: '/assets/sprites/tables/garage.png',
-  security: '/assets/sprites/tables/security.png',
-  warehouse: '/assets/sprites/tables/warehouse.png',
-  living: '/assets/sprites/tables/living.png',
-  balcony: '/assets/sprites/tables/balcony.png',
-  desk: '/assets/sprites/tables/desk.png',
-  city: '/assets/sprites/tables/city.png',
+/** AI racers — drop Lovable cutouts here (fallback: tinted volt_mini_gt). */
+export const AI_VEHICLE_SPRITE_URLS: Record<string, string> = {
+  ai_balanced: '/assets/sprites/vehicles/ai_balanced.png',
+  ai_agile: '/assets/sprites/vehicles/ai_agile.png',
+  ai_speed: '/assets/sprites/vehicles/ai_speed.png',
 };
 
 export const BIOME_SPRITE_URLS: Record<string, string> = {
@@ -40,4 +34,74 @@ export const BIOME_SPRITE_URLS: Record<string, string> = {
   desk_lamp: '/assets/sprites/biomes/desk_lamp.png',
   city_towers: '/assets/sprites/biomes/city_towers.png',
   city_lamp: '/assets/sprites/biomes/city_lamp.png',
+};
+
+/** Build minigame part icons (9). */
+export const PART_SPRITE_URLS: Record<string, string> = {
+  wheels_slick: '/assets/sprites/parts/wheels_slick.png',
+  wheels_knobby: '/assets/sprites/parts/wheels_knobby.png',
+  wheels_rain: '/assets/sprites/parts/wheels_rain.png',
+  body_aero: '/assets/sprites/parts/body_aero.png',
+  body_compact: '/assets/sprites/parts/body_compact.png',
+  body_tank: '/assets/sprites/parts/body_tank.png',
+  engine_volt: '/assets/sprites/parts/engine_volt.png',
+  engine_torque: '/assets/sprites/parts/engine_torque.png',
+  engine_pulse: '/assets/sprites/parts/engine_pulse.png',
+};
+
+/** Power-up HUD / pickup icons (15). */
+export const POWERUP_ICON_URLS: Record<string, string> = {
+  turbo_cell: '/assets/sprites/ui/powerups/turbo_cell.png',
+  overcharge_boost: '/assets/sprites/ui/powerups/overcharge_boost.png',
+  side_dash: '/assets/sprites/ui/powerups/side_dash.png',
+  smart_grip: '/assets/sprites/ui/powerups/smart_grip.png',
+  emp_pulse: '/assets/sprites/ui/powerups/emp_pulse.png',
+  nano_mine: '/assets/sprites/ui/powerups/nano_mine.png',
+  drone_zap: '/assets/sprites/ui/powerups/drone_zap.png',
+  paint_foam: '/assets/sprites/ui/powerups/paint_foam.png',
+  shield_bubble: '/assets/sprites/ui/powerups/shield_bubble.png',
+  auto_correct: '/assets/sprites/ui/powerups/auto_correct.png',
+  jam_blocker: '/assets/sprites/ui/powerups/jam_blocker.png',
+  camera_cloak: '/assets/sprites/ui/powerups/camera_cloak.png',
+  gate_hack: '/assets/sprites/ui/powerups/gate_hack.png',
+  charge_link: '/assets/sprites/ui/powerups/charge_link.png',
+  magnet_pull: '/assets/sprites/ui/powerups/magnet_pull.png',
+};
+
+/** Menu track thumbnails. */
+export const TRACK_THUMB_URLS: Record<string, string> = {
+  kitchen_8: '/assets/sprites/ui/tracks/kitchen_8.png',
+  solar_8: '/assets/sprites/ui/tracks/solar_8.png',
+  garden_8: '/assets/sprites/ui/tracks/garden_8.png',
+  garage_8: '/assets/sprites/ui/tracks/garage_8.png',
+  balcony_8: '/assets/sprites/ui/tracks/balcony_8.png',
+  desk_8: '/assets/sprites/ui/tracks/desk_8.png',
+};
+
+export const UI_SPRITE_URLS = {
+  logo: '/assets/sprites/ui/logo_smart_rush.png',
+} as const;
+
+/** Optional VFX overlays (priority C — engine Graphics until dropped). */
+export const VFX_SPRITE_URLS: Record<string, string> = {
+  boost_flame: '/assets/sprites/vfx/boost_flame.png',
+  shield_ring: '/assets/sprites/vfx/shield_ring.png',
+  emp_burst: '/assets/sprites/vfx/emp_burst.png',
+  exhaust: '/assets/sprites/vfx/exhaust.png',
+};
+
+export const HAZARD_SPRITE_URLS: Record<string, string> = {
+  robot_vacuum: '/assets/sprites/hazards/robot_vacuum.png',
+  robot_mower: '/assets/sprites/hazards/robot_mower.png',
+  drone: '/assets/sprites/hazards/drone.png',
+  conveyor: '/assets/sprites/hazards/conveyor.png',
+};
+
+export const PICKUP_SPRITE_URLS: Record<string, string> = {
+  powerup_crate: '/assets/sprites/pickups/powerup_crate.png',
+  powerup_crate_glow: '/assets/sprites/pickups/powerup_crate_glow.png',
+  token: '/assets/sprites/pickups/token.png',
+  mine: '/assets/sprites/pickups/mine.png',
+  boost_pad: '/assets/sprites/pickups/boost_pad.png',
+  boost_pad_glow: '/assets/sprites/pickups/boost_pad_glow.png',
 };

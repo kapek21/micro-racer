@@ -3,7 +3,7 @@ import { BIOME_PROPS } from '../config/biome-decorations.js';
 import type { SpriteAtlas } from './sprite-atlas.js';
 import { SpritePool } from './sprite-pool.js';
 
-const DECO_SCALE = 0.68;
+const DECO_SCALE = 0.55;
 
 export function syncBiomeDecorations(
   pool: SpritePool,
@@ -11,11 +11,9 @@ export function syncBiomeDecorations(
   track: TrackDef,
   t: number,
   active: Set<string>,
-  camera?: { x: number; y: number },
 ): void {
   const props = BIOME_PROPS[track.biome] ?? [];
-  const camX = camera?.x ?? 600;
-  const camY = camera?.y ?? 400;
+  const pulse = 0.5 + 0.5 * Math.sin(t * 0.002);
 
   for (let i = 0; i < props.length; i++) {
     const p = props[i]!;
@@ -25,38 +23,36 @@ export function syncBiomeDecorations(
     const id = `biome_${track.biome}_${i}`;
     active.add(id);
 
-    const depth = 0.015 + (p.scale ?? 1) * 0.008;
-    const px = p.x + (p.x - camX) * depth;
-    const py = p.y + (p.y - camY) * depth;
-
-    let alpha = 0.92;
+    let alpha = 1;
     let scale = p.scale * DECO_SCALE;
     let rotation = p.rotation ?? 0;
-    let y = py;
+    let y = p.y;
+    let glowAlpha = 0;
 
     switch (p.anim) {
       case 'pulse':
-        scale *= 1 + 0.04 * Math.sin(t * 0.005);
-        alpha = 0.9 + 0.08 * Math.sin(t * 0.005);
+        scale *= 1 + 0.05 * Math.sin(t * 0.005);
+        alpha = 0.88 + 0.12 * Math.sin(t * 0.005);
+        glowAlpha = 0.2 + pulse * 0.25;
         break;
       case 'bob':
         y += Math.sin(t * 0.006 + p.x) * 4;
         break;
       case 'flicker':
-        alpha = 0.65 + 0.35 * Math.abs(Math.sin(t * 0.018));
+        alpha = 0.55 + 0.45 * Math.abs(Math.sin(t * 0.018));
+        glowAlpha = alpha * 0.5;
         break;
       case 'rotate':
         rotation += Math.sin(t * 0.003 + p.y) * 0.18;
         break;
     }
 
-    const sid = `biome_shadow_${track.biome}_${i}`;
-    active.add(sid);
-    pool.set(sid, atlas.shadow, px, y + 14 * scale, rotation, scale * 1.1, { alpha: alpha * 0.65 });
-
-    pool.set(id, tex, px, y, rotation, scale, {
+    pool.set(id, tex, p.x, y, rotation, scale, {
       alpha,
-      glow: undefined,
+      glow:
+        glowAlpha > 0
+          ? { texture: atlas.glow, alpha: glowAlpha, scale: 1.5 }
+          : undefined,
     });
   }
 }

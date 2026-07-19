@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "game": "smart-rush",
+  "style": "arcade-hybrid",
+  "notes": "Drop Lovable PNGs at src paths. Orient: vehicles nose RIGHT top-down. See docs/lovable-asset-prompts.md",
+  "sprites": {
+    "vehicles": {
+      "volt_mini_gt": { "src": "/assets/sprites/vehicles/volt_mini_gt.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "topdown_nose_right" },
+      "sweep_x_buggy": { "src": "/assets/sprites/vehicles/sweep_x_buggy.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "topdown_nose_right" },
+      "charge_van": { "src": "/assets/sprites/vehicles/charge_van.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "topdown_nose_right" },
+      "photon_racer": { "src": "/assets/sprites/vehicles/photon_racer.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "topdown_nose_right" },
+      "ai_balanced": { "src": "/assets/sprites/vehicles/ai_balanced.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "topdown_nose_right" },
+      "ai_agile": { "src": "/assets/sprites/vehicles/ai_agile.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "topdown_nose_right" },
+      "ai_speed": { "src": "/assets/sprites/vehicles/ai_speed.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "topdown_nose_right" }
+    },
+    "biomes": {
+      "kitchen_island": { "src": "/assets/sprites/biomes/kitchen_island.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "kitchen_fridge": { "src": "/assets/sprites/biomes/kitchen_fridge.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "roof_solar": { "src": "/assets/sprites/biomes/roof_solar.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "roof_ac": { "src": "/assets/sprites/biomes/roof_ac.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "garden_tree": { "src": "/assets/sprites/biomes/garden_tree.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "garden_lawn": { "src": "/assets/sprites/biomes/garden_lawn.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "garage_charger": { "src": "/assets/sprites/biomes/garage_charger.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "garage_bench": { "src": "/assets/sprites/biomes/garage_bench.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "balcony_planter": { "src": "/assets/sprites/biomes/balcony_planter.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "balcony_sensor": { "src": "/assets/sprites/biomes/balcony_sensor.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "desk_setup": { "src": "/assets/sprites/biomes/desk_setup.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "desk_lamp": { "src": "/assets/sprites/biomes/desk_lamp.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34" },
+      "security_camera": { "src": "/assets/sprites/biomes/security_camera.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" },
+      "security_laser": { "src": "/assets/sprites/biomes/security_laser.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" },
+      "warehouse_shelf": { "src": "/assets/sprites/biomes/warehouse_shelf.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" },
+      "warehouse_pallet": { "src": "/assets/sprites/biomes/warehouse_pallet.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" },
+      "living_tv": { "src": "/assets/sprites/biomes/living_tv.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" },
+      "living_sofa": { "src": "/assets/sprites/biomes/living_sofa.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" },
+      "city_towers": { "src": "/assets/sprites/biomes/city_towers.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" },
+      "city_lamp": { "src": "/assets/sprites/biomes/city_lamp.png", "w": 320, "h": 320, "loadW": 160, "loadH": 160, "orient": "front_34", "priority": "C" }
+    },
+    "hazards": {
+      "robot_vacuum": { "src": "/assets/sprites/hazards/robot_vacuum.png", "w": 192, "h": 192, "loadW": 96, "loadH": 96, "orient": "topdown" },
+      "robot_mower": { "src": "/assets/sprites/hazards/robot_mower.png", "w": 192, "h": 192, "loadW": 96, "loadH": 96, "orient": "topdown" },
+      "drone": { "src": "/assets/sprites/hazards/drone.png", "w": 192, "h": 192, "loadW": 96, "loadH": 96, "orient": "topdown" },
+      "conveyor": { "src": "/assets/sprites/hazards/conveyor.png", "w": 256, "h": 112, "loadW": 128, "loadH": 56, "orient": "topdown" }
+    },
+    "pickups": {
+      "powerup_crate": { "src": "/assets/sprites/pickups/powerup_crate.png", "w": 144, "h": 144, "loadW": 72, "loadH": 72, "orient": "topdown" },
+      "powerup_crate_glow": { "src": "/assets/sprites/pickups/powerup_crate_glow.png", "w": 144, "h": 144, "loadW": 72, "loadH": 72, "orient": "topdown" },
+      "token": { "src": "/assets/sprites/pickups/token.png", "w": 128, "h": 128, "loadW": 64, "loadH": 64, "orient": "topdown" },
+      "mine": { "src": "/assets/sprites/pickups/mine.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "topdown" },
+      "boost_pad": { "src": "/assets/sprites/pickups/boost_pad.png", "w": 256, "h": 128, "loadW": 128, "loadH": 64, "orient": "topdown" },
+      "boost_pad_glow": { "src": "/assets/sprites/pickups/boost_pad_glow.png", "w": 256, "h": 128, "loadW": 128, "loadH": 64, "orient": "topdown" }
+    },
+    "parts": {
+      "wheels_slick": { "src": "/assets/sprites/parts/wheels_slick.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "wheels_knobby": { "src": "/assets/sprites/parts/wheels_knobby.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "wheels_rain": { "src": "/assets/sprites/parts/wheels_rain.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "body_aero": { "src": "/assets/sprites/parts/body_aero.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "body_compact": { "src": "/assets/sprites/parts/body_compact.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "body_tank": { "src": "/assets/sprites/parts/body_tank.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "engine_volt": { "src": "/assets/sprites/parts/engine_volt.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "engine_torque": { "src": "/assets/sprites/parts/engine_torque.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "engine_pulse": { "src": "/assets/sprites/parts/engine_pulse.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" }
+    },
+    "powerups": {
+      "turbo_cell": { "src": "/assets/sprites/ui/powerups/turbo_cell.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "overcharge_boost": { "src": "/assets/sprites/ui/powerups/overcharge_boost.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "side_dash": { "src": "/assets/sprites/ui/powerups/side_dash.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "smart_grip": { "src": "/assets/sprites/ui/powerups/smart_grip.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "emp_pulse": { "src": "/assets/sprites/ui/powerups/emp_pulse.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "nano_mine": { "src": "/assets/sprites/ui/powerups/nano_mine.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "drone_zap": { "src": "/assets/sprites/ui/powerups/drone_zap.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "paint_foam": { "src": "/assets/sprites/ui/powerups/paint_foam.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "shield_bubble": { "src": "/assets/sprites/ui/powerups/shield_bubble.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "auto_correct": { "src": "/assets/sprites/ui/powerups/auto_correct.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "jam_blocker": { "src": "/assets/sprites/ui/powerups/jam_blocker.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "camera_cloak": { "src": "/assets/sprites/ui/powerups/camera_cloak.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "gate_hack": { "src": "/assets/sprites/ui/powerups/gate_hack.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "charge_link": { "src": "/assets/sprites/ui/powerups/charge_link.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },
+      "magnet_pull": { "src": "/assets/sprites/ui/powerups/magnet_pull.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" }
+    },
+    "ui": {
+      "logo_smart_rush": { "src": "/assets/sprites/ui/logo_smart_rush.png", "w": 1024, "h": 512, "orient": "logo" },
+      "track_kitchen_8": { "src": "/assets/sprites/ui/tracks/kitchen_8.png", "w": 512, "h": 288, "orient": "thumb" },
+      "track_solar_8": { "src": "/assets/sprites/ui/tracks/solar_8.png", "w": 512, "h": 288, "orient": "thumb" },
+      "track_garden_8": { "src": "/assets/sprites/ui/tracks/garden_8.png", "w": 512, "h": 288, "orient": "thumb" },
+      "track_garage_8": { "src": "/assets/sprites/ui/tracks/garage_8.png", "w": 512, "h": 288, "orient": "thumb" },
+      "track_balcony_8": { "src": "/assets/sprites/ui/tracks/balcony_8.png", "w": 512, "h": 288, "orient": "thumb" },
+      "track_desk_8": { "src": "/assets/sprites/ui/tracks/desk_8.png", "w": 512, "h": 288, "orient": "thumb" }
+    },
+    "vfx": {
+      "boost_flame": { "src": "/assets/sprites/vfx/boost_flame.png", "w": 128, "h": 128, "priority": "C" },
+      "shield_ring": { "src": "/assets/sprites/vfx/shield_ring.png", "w": 128, "h": 128, "priority": "C" },
+      "emp_burst": { "src": "/assets/sprites/vfx/emp_burst.png", "w": 128, "h": 128, "priority": "C" },
+      "exhaust": { "src": "/assets/sprites/vfx/exhaust.png", "w": 64, "h": 64, "priority": "C" }
+    },
+    "cosmetics": {
+      "skin_volt_neon": { "src": "/assets/sprites/ui/cosmetics/skin_volt_neon.png", "w": 256, "h": 256, "priority": "C" },
+      "skin_sweep_camo": { "src": "/assets/sprites/ui/cosmetics/skin_sweep_camo.png", "w": 256, "h": 256, "priority": "C" },
+      "skin_charge_gold": { "src": "/assets/sprites/ui/cosmetics/skin_charge_gold.png", "w": 256, "h": 256, "priority": "C" },
+      "skin_photon_chrome": { "src": "/assets/sprites/ui/cosmetics/skin_photon_chrome.png", "w": 256, "h": 256, "priority": "C" },
+      "trail_spark": { "src": "/assets/sprites/ui/cosmetics/trail_spark.png", "w": 256, "h": 256, "priority": "C" },
+      "trail_holo": { "src": "/assets/sprites/ui/cosmetics/trail_holo.png", "w": 256, "h": 256, "priority": "C" },
+      "banner_smart": { "src": "/assets/sprites/ui/cosmetics/banner_smart.png", "w": 256, "h": 256, "priority": "C" },
+      "banner_rush": { "src": "/assets/sprites/ui/cosmetics/banner_rush.png", "w": 256, "h": 256, "priority": "C" }
+    }
+  }
+}

@@ -1,27 +1,18 @@
 import { useEffect, type ReactNode, useState } from 'react';
 import { isGameMuted, toggleGameMute } from '../audio/audio-bind.js';
-import { useHudStore } from './hud-store.js';
-import { formatRaceTime } from '../race/sector-timing.js';
-import { VEHICLE_SPRITE_URLS } from '../config/asset-paths.js';
-import { VEHICLES } from '../config/vehicles.js';
-import { GAME_MODES } from '../config/game-modes.js';
-import { TRACKS } from '../config/tracks/index.js';
-import { resolveLapCount } from '../race/mode-logic.js';
-import { COSMETICS, buyCosmetic, isTrackUnlocked } from '../meta/profile.js';
+import { useHudStore, markHowToPlaySeen } from './hud-store.js';
+import { SURFACE_LABELS } from '../config/parts.js';
+import { TRACK_THUMB_URLS, UI_SPRITE_URLS } from '../config/asset-paths.js';
+import { TRACKS, trackById } from '../config/tracks/index.js';
+import {
+  COSMETICS,
+  buyCosmetic,
+  equipCosmetic,
+  isTrackUnlocked,
+  equippedTrailId,
+} from '../meta/profile.js';
 import { TouchControls } from './touch-controls.js';
-
-const BIOME_ACCENTS: Record<string, string> = {
-  kitchen: '#40c0ff',
-  roof: '#ffc040',
-  garden: '#40e878',
-  garage: '#ffa030',
-  security: '#ff4080',
-  warehouse: '#80a0ff',
-  living: '#ff40ff',
-  balcony: '#60c0e0',
-  desk: '#a0a0ff',
-  city: '#40ff80',
-};
+import { BuildMinigames } from './build-minigames.js';
 
 interface HudProps {
   onStart(): void;
@@ -41,114 +32,128 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
     if (!racing) reloadProfile();
   }, [racing, reloadProfile]);
 
+  const selectedTrack = trackById(snap.selectedTrackId);
+
+  if (snap.buildOpen) {
+    return (
+      <BuildMinigames
+        surface={selectedTrack.surface}
+        onCancel={() => setSnapshot({ buildOpen: false, pendingBuild: null })}
+        onComplete={(result) => {
+          setSnapshot({ buildOpen: false, pendingBuild: result });
+          onStart();
+        }}
+      />
+    );
+  }
+
   if (!racing && snap.phase === 'menu') {
     return (
       <div className="menu-overlay absolute inset-0 z-20 flex items-center justify-center overflow-y-auto p-4">
         <div className="panel pointer-events-auto my-auto w-full max-w-lg p-5">
           <header className="mb-4 text-center">
+            <img
+              src={UI_SPRITE_URLS.logo}
+              alt="Smart Rush"
+              className="mx-auto mb-2 h-16 w-auto max-w-[90%] object-contain"
+              draggable={false}
+            />
             <p className="text-xs tracking-[0.3em] text-cyan-400">MICRO CIRCUIT</p>
-            <h1 className="font-display text-xl text-white">Smart Rush</h1>
             <p className="mt-1 text-xs text-white/50">
               Lvl {profile.driverLevel} · {profile.coins} monet · {profile.totalWins} wygranych
             </p>
           </header>
 
-          <nav className="mb-4 flex gap-2">
-            {(['race', 'progress', 'shop'] as const).map((tab) => (
+          <nav className="mb-4 flex flex-wrap gap-2">
+            {(['race', 'how', 'progress', 'shop'] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
-                className={`tab-btn flex-1 ${snap.menuScreen === tab ? 'tab-btn-on' : ''}`}
-                onClick={() => setSnapshot({ menuScreen: tab })}
+                className={`tab-btn flex-1 min-w-[4.5rem] ${snap.menuScreen === tab ? 'tab-btn-on' : ''}`}
+                onClick={() => {
+                  if (tab !== 'how') markHowToPlaySeen();
+                  setSnapshot({ menuScreen: tab });
+                }}
               >
-                {tab === 'race' ? 'WYŚCIG' : tab === 'progress' ? 'POSTĘP' : 'SKLEP'}
+                {tab === 'race'
+                  ? 'WYŚCIG'
+                  : tab === 'how'
+                    ? 'JAK GRAĆ'
+                    : tab === 'progress'
+                      ? 'POSTĘP'
+                      : 'SKLEP'}
               </button>
             ))}
           </nav>
 
           {snap.menuScreen === 'race' && (
             <>
-              <Section title="Pojazd">
-                <div className="grid grid-cols-2 gap-2">
-                  {VEHICLES.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      className={`vehicle-btn ${snap.selectedVehicleId === v.id ? 'vehicle-btn-on' : ''}`}
-                      onClick={() => setSnapshot({ selectedVehicleId: v.id })}
-                    >
-                      <div className="vehicle-preview">
-                        <img
-                          src={VEHICLE_SPRITE_URLS[v.id]}
-                          alt=""
-                          className="vehicle-preview-img"
-                          draggable={false}
-                        />
-                      </div>
-                      <span className="font-display text-[10px]">{v.namePl}</span>
-                      <span className="text-white/50">{v.class}</span>
-                    </button>
-                  ))}
-                </div>
-              </Section>
-
-              <Section title="Trasa">
-                <div className="max-h-36 space-y-1 overflow-y-auto">
+              <Section title="Trasa (ósemka · 3 okrążenia)">
+                <div className="max-h-48 space-y-1 overflow-y-auto">
                   {TRACKS.map((t) => {
                     const locked = !isTrackUnlocked(profile, t.id);
-                    const laps = resolveLapCount(snap.selectedModeId, t);
-                    const parMs = t.parTimeMs ?? laps * (t.targetLapMs ?? 22000);
-                    const targetMs = t.targetLapMs ?? Math.round(parMs / Math.max(1, laps));
+                    const best = profile.trackBests[t.id];
+                    const thumb = TRACK_THUMB_URLS[t.id];
                     return (
                       <button
                         key={t.id}
                         type="button"
                         disabled={locked}
-                        className={`track-btn w-full ${snap.selectedTrackId === t.id ? 'track-btn-on' : ''} ${locked ? 'opacity-40' : ''}`}
+                        className={`track-btn flex w-full items-center gap-2 ${snap.selectedTrackId === t.id ? 'track-btn-on' : ''} ${locked ? 'opacity-40' : ''}`}
                         onClick={() => setSnapshot({ selectedTrackId: t.id })}
                       >
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="biome-dot"
-                            style={{ background: BIOME_ACCENTS[t.biome] ?? '#40c0ff' }}
+                        {thumb && (
+                          <img
+                            src={thumb}
+                            alt=""
+                            className="h-10 w-16 shrink-0 rounded object-cover"
+                            draggable={false}
                           />
+                        )}
+                        <span className="flex min-w-0 flex-1 flex-col items-start">
                           <span>{t.namePl}</span>
+                          <span className="text-[9px] text-white/40">
+                            {SURFACE_LABELS[t.surface]}
+                            {best ? ` · best ${best.bestScore}` : ''}
+                          </span>
                         </span>
-                        <span className="text-right text-white/40">
-                          {locked ? '🔒' : `${laps} okr · par ${formatRaceTime(parMs)} · ${formatRaceTime(targetMs)}/okr`}
-                        </span>
+                        <span className="text-white/40">{locked ? '🔒' : t.biome}</span>
                       </button>
                     );
                   })}
                 </div>
               </Section>
 
-              <Section title="Tryb">
-                <div className="grid grid-cols-2 gap-2">
-                  {GAME_MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className={`mode-btn ${snap.selectedModeId === m.id ? 'mode-btn-on' : ''}`}
-                      onClick={() => setSnapshot({ selectedModeId: m.id })}
-                      title={m.descriptionPl}
-                    >
-                      {m.namePl}
-                    </button>
-                  ))}
-                </div>
-              </Section>
-
-          <p className="mb-3 text-[10px] text-white/45">
-            A/D lub ←→ skręt · auto-gaz · S hamulec · Shift drift · Space boost · E power-up
-          </p>
+              <button
+                type="button"
+                className="mb-2 w-full text-[10px] text-cyan-400/80 underline-offset-2 hover:underline"
+                onClick={() => setSnapshot({ menuScreen: 'how' })}
+              >
+                Nie wiesz od czego zacząć? Otwórz JAK GRAĆ →
+              </button>
               <button
                 type="button"
                 className="btn-primary w-full disabled:opacity-40"
                 disabled={!snap.assetsReady}
-                onClick={onStart}
+                onClick={() => setSnapshot({ buildOpen: true })}
               >
-                {snap.assetsReady ? 'START' : 'ŁADOWANIE…'}
+                {snap.assetsReady ? 'BUDUJ I ŚCIGAJ' : 'ŁADOWANIE…'}
+              </button>
+            </>
+          )}
+
+          {snap.menuScreen === 'how' && (
+            <>
+              <HowToPlay />
+              <button
+                type="button"
+                className="btn-primary mt-3 w-full"
+                onClick={() => {
+                  markHowToPlaySeen();
+                  setSnapshot({ menuScreen: 'race' });
+                }}
+              >
+                ROZUMIEM — DO WYŚCIGU
               </button>
             </>
           )}
@@ -157,7 +162,19 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
             <div className="space-y-3 text-xs">
               <Stat label="Poziom kierowcy" value={`${profile.driverLevel} (${profile.driverXp} XP)`} />
               <Stat label="Wyścigi" value={`${profile.totalRaces} (${profile.totalWins} wygranych)`} />
-              <Stat label="Odblokowane trasy" value={`${profile.unlockedTracks.length}/10`} />
+              <Stat label="Odblokowane trasy" value={`${profile.unlockedTracks.length}/6`} />
+              <div>
+                <p className="mb-1 text-white/50">Rekordy torów</p>
+                {TRACKS.map((t) => {
+                  const b = profile.trackBests[t.id];
+                  return (
+                    <div key={t.id} className="mb-1 flex justify-between text-white/70">
+                      <span>{t.namePl}</span>
+                      <span>{b ? `${b.bestScore} pkt` : '—'}</span>
+                    </div>
+                  );
+                })}
+              </div>
               <div>
                 <p className="mb-1 text-white/50">Cele dzienne</p>
                 {profile.dailyGoals.map((g) => (
@@ -175,8 +192,12 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
 
           {snap.menuScreen === 'shop' && (
             <div className="max-h-80 space-y-2 overflow-y-auto text-xs">
-              {COSMETICS.map((c) => {
+              <p className="mb-2 text-[10px] text-white/45">
+                Traile zmieniają ślad za autem. Skiny pojazdów wrócą z grafikami.
+              </p>
+              {COSMETICS.filter((c) => c.kind === 'trail' || c.kind === 'banner').map((c) => {
                 const owned = profile.ownedCosmetics.includes(c.id);
+                const equipped = c.kind === 'trail' && equippedTrailId(profile) === c.id;
                 return (
                   <div key={c.id} className="shop-row flex items-center justify-between gap-2">
                     <div>
@@ -184,7 +205,20 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
                       <div className="text-white/40">{c.kind}</div>
                     </div>
                     {owned ? (
-                      <span className="text-green-400">Posiadane</span>
+                      c.kind === 'trail' ? (
+                        <button
+                          type="button"
+                          className="btn-secondary px-3 py-1"
+                          onClick={() => {
+                            equipCosmetic(profile, c.id);
+                            reloadProfile();
+                          }}
+                        >
+                          {equipped ? 'Założone' : 'Załóż'}
+                        </button>
+                      ) : (
+                        <span className="text-green-400">Posiadane</span>
+                      )
                     ) : (
                       <button
                         type="button"
@@ -216,65 +250,16 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
             {snap.position}/{snap.racerCount}
           </div>
         </div>
-        <div className="panel text-center text-xs min-w-[7rem]">
+        <div className="panel text-center text-xs">
           <div className="text-white/50">OKRĄŻENIE</div>
           <div className="font-display text-lg">
             {snap.lap}/{snap.lapCount}
           </div>
-          {snap.checkpointTotal > 0 && (
-            <>
-              <div className="mt-0.5 text-white/50">SEKTOR · {snap.nextCheckpointLabel}</div>
-              <div className="font-display text-sm">
-                {Math.min(snap.checkpointIndex + 1, snap.checkpointTotal)}/{snap.checkpointTotal}
-              </div>
-              {snap.phase === 'racing' && (
-                <div className="text-[10px] text-cyan-300">
-                  do {formatRaceTime(Math.max(0, snap.nextCheckpointDeadlineMs - snap.timeMs))}
-                </div>
-              )}
-            </>
-          )}
         </div>
         <div className="panel text-right text-xs">
           <div className="text-white/50">KM/H*</div>
           <div className="font-display text-lg">{Math.round(snap.speed * 0.45)}</div>
         </div>
-      </div>
-
-      <div className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2">
-        {snap.phase === 'racing' && (
-        <div className="panel flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 py-2 text-[10px]">
-          <div>
-            <div className="text-white/40">CZAS OKR.</div>
-            <div className="font-display text-sm">{formatRaceTime(snap.currentLapMs)}</div>
-          </div>
-          <div>
-            <div className="text-white/40">BEST</div>
-            <div className="font-display text-sm">
-              {snap.bestLapMs < Infinity ? formatRaceTime(snap.bestLapMs) : '--'}
-            </div>
-          </div>
-          <div>
-            <div className="text-white/40">PAR · OKR</div>
-            <div className="font-display text-sm text-cyan-200">
-              {formatRaceTime(snap.parTimeMs)} · {formatRaceTime(snap.targetLapMs)}
-            </div>
-          </div>
-          <div>
-            <div className="text-white/40">Δ PAR</div>
-            <div
-              className={`font-display text-sm ${snap.deltaParMs <= 0 ? 'text-green-400' : 'text-red-400'}`}
-            >
-              {snap.deltaParMs <= 0 ? '' : '+'}
-              {formatRaceTime(Math.abs(snap.deltaParMs))}
-            </div>
-          </div>
-          <div>
-            <div className="text-white/40">WYNIK</div>
-            <div className="font-display text-sm text-yellow-300">{snap.raceScore}</div>
-          </div>
-        </div>
-        )}
       </div>
 
       {snap.phase === 'countdown' && (
@@ -293,20 +278,12 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-between p-3">
         <div className="panel text-[10px]">
-          <div className="text-white/40">{snap.trackLabel} · {snap.modeLabel}</div>
+          <div className="text-white/40">
+            {snap.trackLabel} · {snap.surfaceLabel}
+          </div>
           {snap.boostActive && <span className="text-orange-400">BOOST </span>}
           {snap.shieldActive && <span className="text-cyan-300">SHIELD </span>}
-          {snap.heldPowerUp && (
-            <span className="pwr-badge" title={snap.heldPowerUp}>
-              <span className="pwr-symbol">{snap.heldPowerUpSymbol}</span>
-              {snap.heldPowerUpCharges > 1 && (
-                <span className="pwr-charges">×{snap.heldPowerUpCharges}</span>
-              )}
-            </span>
-          )}
-          {snap.eliminationStrikes > 0 && (
-            <span className="text-red-400"> POZA KADREM: {snap.eliminationStrikes}</span>
-          )}
+          {snap.heldPowerUp && <span className="text-pink-400">PWR: {snap.heldPowerUp}</span>}
         </div>
         <div className="flex items-end gap-2">
           <button
@@ -318,7 +295,7 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
             {muted ? '🔇' : '🔊'}
           </button>
           <div className="panel text-[10px] text-white/60">
-            {formatRaceTime(snap.timeMs)} / par {formatRaceTime(snap.parTimeMs)} · 🪙{snap.tokensCollected}
+            {(snap.timeMs / 1000).toFixed(1)}s · 🪙{snap.tokensCollected}
           </div>
         </div>
       </div>
@@ -327,16 +304,34 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
 
       {snap.phase === 'finished' && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/75">
-          <div className="panel pointer-events-auto p-6 text-center">
+          <div className="panel pointer-events-auto max-w-sm p-6 text-center">
             <h2 className="mb-2 font-display text-lg">
               {snap.position === 1 ? 'WYGRANA!' : `MIEJSCE ${snap.position}`}
             </h2>
-            <p className="mb-1 text-sm text-white/70">
-              +{snap.coinsEarned} monet · styl +{snap.stylePoints}
-            </p>
-            <p className="mb-3 text-xs text-white/50">
-              Czas {formatRaceTime(snap.timeMs)} · par {formatRaceTime(snap.parTimeMs)} · {snap.lapCount} okr.
-            </p>
+            <div className="mb-3 space-y-1 text-left text-xs text-white/75">
+              <div className="flex justify-between">
+                <span>Budowa</span>
+                <span className="text-cyan-300">+{snap.buildPoints}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Czas</span>
+                <span className="text-yellow-300">+{snap.timePoints}</span>
+              </div>
+              <div className="flex justify-between border-t border-white/10 pt-1 font-display">
+                <span>Suma</span>
+                <span>{snap.raceScore}</span>
+              </div>
+              <div className="flex justify-between text-white/50">
+                <span>Monety</span>
+                <span>+{snap.coinsEarned}</span>
+              </div>
+              {profile.trackBests[snap.selectedTrackId] && (
+                <div className="flex justify-between text-white/45">
+                  <span>Rekord toru</span>
+                  <span>{profile.trackBests[snap.selectedTrackId]!.bestScore} pkt</span>
+                </div>
+              )}
+            </div>
             <button type="button" className="btn-primary mb-2 w-full" onClick={onRestart}>
               JESZCZE RAZ
             </button>
@@ -347,6 +342,89 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
         </div>
       )}
     </>
+  );
+}
+
+function HowToPlay(): JSX.Element {
+  return (
+    <div className="how-board max-h-[28rem] space-y-3 overflow-y-auto text-xs text-white/80">
+      <div className="rounded border border-cyan-400/25 bg-cyan-400/5 p-3">
+        <p className="mb-1 font-display text-[11px] tracking-wider text-cyan-300">CEL</p>
+        <p>
+          Zbuduj mikro-pojazd dopasowany do nawierzchni toru, potem wygraj wyścig z AI (3 okrążenia na
+          ósemce). Ranking = punkty budowy + punkty czasu.
+        </p>
+      </div>
+
+      <HowStep n="1" title="Wybierz tor">
+        Każdy tor ma inną nawierzchnię (dywan, metal, ziemia, asfalt, mokro, żwir). Części mają
+        preferowaną nawierzchnię — zielona etykieta „idealne” pomaga wybrać.
+      </HowStep>
+
+      <HowStep n="2" title="Zbuduj auto (3 mini-gry)">
+        Kolejno: <strong className="text-white">Koła → Nadwozie → Silnik</strong>. Na każdej części
+        igła chodzi od − do +. Kliknij <strong className="text-white">USTAW</strong>, gdy igła jest w
+        zielonej strefie. Idealne dopasowanie = lepsze stats i więcej punktów budowy.
+      </HowStep>
+
+      <HowStep n="3" title="Wyścig z AI">
+        Startujesz z 3 przeciwnikami. Auto-gaz jest włączony — Ty skręcasz. Meta: 3 pełne okrążenia.
+      </HowStep>
+
+      <HowStep n="4" title="Sterowanie">
+        <ul className="mt-1 list-inside list-disc space-y-0.5 text-white/70">
+          <li>
+            <kbd className="kbd">A</kbd> / <kbd className="kbd">D</kbd> lub strzałki — skręt
+          </li>
+          <li>
+            <kbd className="kbd">Space</kbd> — boost
+          </li>
+          <li>
+            <kbd className="kbd">E</kbd> — użyj power-upa
+          </li>
+          <li>Na telefonie: touch pad po bokach ekranu</li>
+        </ul>
+      </HowStep>
+
+      <HowStep n="5" title="Punkty i nagrody">
+        <ul className="mt-1 list-inside list-disc space-y-0.5 text-white/70">
+          <li>
+            <span className="text-cyan-300">Budowa</span> (0–300) — jakość 3 skillów × dopasowanie do
+            nawierzchni
+          </li>
+          <li>
+            <span className="text-yellow-300">Czas</span> (0–700) — jak szybko dojechałeś vs par toru +
+            bonus miejsca
+          </li>
+          <li>Suma idzie do rekordu toru, monet i XP kierowcy</li>
+        </ul>
+      </HowStep>
+
+      <HowStep n="6" title="Na torze">
+        Zbieraj skrzynki power-upów i tokeny. Unikaj odkurzaczy / kosiarek / dronów. Boost pady dają
+        chwilowy zryw. Trzymaj się asfaltu — zjazd spowalnia.
+      </HowStep>
+    </div>
+  );
+}
+
+function HowStep({
+  n,
+  title,
+  children,
+}: {
+  n: string;
+  title: string;
+  children: ReactNode;
+}): JSX.Element {
+  return (
+    <div className="rounded border border-white/10 bg-white/[0.03] p-3">
+      <p className="mb-1 font-display text-[11px] text-white">
+        <span className="mr-2 text-cyan-400">{n}.</span>
+        {title}
+      </p>
+      <div className="leading-relaxed text-white/70">{children}</div>
+    </div>
   );
 }
 

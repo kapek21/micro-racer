@@ -1,8 +1,8 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { RaceState, RacerState, TrackDef } from '../core/types.js';
+import { vehicleById } from '../config/vehicles.js';
 import { getLateralSpeed } from '../physics/vehicle-controller.js';
 import { getTrackSamples } from '../race/race-sim.js';
-import { leaderRacer } from '../race/mode-logic.js';
 import { powerUpVisual, rarityGlowScale, rarityPulse } from '../config/powerup-visuals.js';
 import type { SpriteAtlas } from './sprite-atlas.js';
 import { loadSpriteAtlas } from './asset-loader.js';
@@ -12,11 +12,10 @@ import { syncBiomeDecorations } from './biome-decorations.js';
 import { drawAtmosphere, tickAtmosphereParticles } from './atmosphere.js';
 import { drawBiome, drawTrack } from './track-draw.js';
 import { drawVehicleFx } from './vehicle-draw.js';
-import { elevationVisualScale } from '../environment/elevation.js';
 import { SpritePool } from './sprite-pool.js';
 import type { PixiApp } from './pixi-app.js';
 
-const VEHICLE_SCALE = 0.78;
+const VEHICLE_SCALE = 0.72;
 const HAZARD_SCALE = 0.68;
 const PICKUP_SCALE = 0.62;
 const TOKEN_SCALE = 0.58;
@@ -46,7 +45,7 @@ export class RaceRenderer {
   private prevActivePickups = new Set<string>();
   private prevPlayerSpeed = 0;
   private prevPlayerEmpSlow = 0;
-  private prevPhase: RaceState['phase'] = 'menu';
+  private playerTrail: 'default' | 'spark' | 'holo' = 'default';
 
   private constructor(pixi: PixiApp, atlas: SpriteAtlas) {
     this.pixi = pixi;
@@ -82,27 +81,21 @@ export class RaceRenderer {
     return new RaceRenderer(pixi, atlas);
   }
 
+  setPlayerTrail(trailId: string | null): void {
+    if (trailId === 'trail_spark') this.playerTrail = 'spark';
+    else if (trailId === 'trail_holo') this.playerTrail = 'holo';
+    else this.playerTrail = 'default';
+  }
+
   sync(state: RaceState, track: TrackDef, dtMs: number): void {
     this.t += dtMs;
     this.particles.tick(dtMs);
     tickAtmosphereParticles(this.particles, track, this.t);
 
     const player = state.racers.find((r) => r.isPlayer);
-    if (state.phase === 'countdown' && this.prevPhase !== 'countdown' && player) {
-      this.camera.reset(player.x, player.y);
-    }
-    this.prevPhase = state.phase;
-
-    const follow = state.mode === 'elimination_camera' ? leaderRacer(state.racers) : player;
+    const follow = player;
     if (follow) {
-      this.camera.follow(
-        follow.x,
-        follow.y,
-        follow.angle,
-        follow.speed,
-        dtMs,
-        state.mode === 'elimination_camera' ? 'leader' : 'player',
-      );
+      this.camera.follow(follow.x, follow.y, follow.angle, follow.speed, dtMs, 'player');
     }
 
     if (player) {
@@ -126,7 +119,10 @@ export class RaceRenderer {
     for (const r of state.racers) {
       if (r.eliminated) continue;
       const intensity = Math.min(1, r.speed / 350) * (r.boostMs > 0 || r.overchargeMs > 0 ? 1.6 : 1);
-      if (r.speed > 40) this.particles.emitExhaust(r.x, r.y, r.angle, intensity);
+      if (r.speed > 40) {
+        const trail = r.isPlayer ? this.playerTrail : 'default';
+        this.particles.emitExhaust(r.x, r.y, r.angle, intensity, trail);
+      }
       if (getLateralSpeed(r) > 70 && r.speed > 100) this.particles.emitSkid(r.x, r.y);
     }
 
@@ -142,13 +138,11 @@ export class RaceRenderer {
 
     const active = new Set<string>();
 
-    drawBiome(this.layers.bg, track, this.t, this.atlas);
-    syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active, this.camera.position);
+    drawBiome(this.layers.bg, track, this.t);
+    syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active);
     drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t);
 
     drawSlipZones(this.layers.decals, track);
-    drawGimmickZones(this.layers.decals, track, state, this.t);
-    drawCheckpoints(this.layers.decals, track);
     drawGates(this.layers.decals, track, state);
     drawCameraTraps(this.layers.decals, track, this.t);
     drawFoam(this.layers.decals, state);
@@ -158,24 +152,17 @@ export class RaceRenderer {
 
     for (const pad of track.boostPads) {
       const id = `pad_${pad.x}_${pad.y}`;
+      const glowId = `${id}_glow`;
       active.add(id);
-      const glowFrame = Math.floor(this.t * 0.006) % 2 === 0;
-      const padPulse = 1 + pulse * 0.08;
-      this.entities.set(
-        id,
-        glowFrame ? this.atlas.boostPadGlow : this.atlas.boostPad,
-        pad.x + pad.w / 2,
-        pad.y + pad.h / 2,
-        0,
-        PAD_SCALE * padPulse,
-        {
-          glow: {
-            texture: this.atlas.glow,
-            alpha: 0.25 + pulse * 0.35,
-            scale: 1.4,
-          },
-        },
-      );
+      active.add(glowId);
+      const padPulse = 1 + pulse * 0.1;
+      const cx = pad.x + pad.w / 2;
+      const cy = pad.y + pad.h / 2;
+      this.entities.set(glowId, this.atlas.boostPadGlow, cx, cy, 0, PAD_SCALE * padPulse * 1.08, {
+        alpha: 0.45 + pulse * 0.4,
+        glow: { texture: this.atlas.glow, alpha: 0.2 + pulse * 0.3, scale: 1.5 },
+      });
+      this.entities.set(id, this.atlas.boostPad, cx, cy, 0, PAD_SCALE * padPulse);
     }
 
     for (const tok of state.tokens) {
@@ -213,8 +200,8 @@ export class RaceRenderer {
         tex,
         p.x,
         p.y + bob,
-        Math.sin(this.t * 0.002 + p.y) * 0.08,
-        PICKUP_SCALE * (1 + pulse * 0.06) * rPulse,
+        this.t * 0.004 + p.y * 0.01,
+        PICKUP_SCALE * (1 + pulse * 0.08) * rPulse,
         {
           glow: {
             texture: this.atlas.glow,
@@ -263,15 +250,16 @@ export class RaceRenderer {
       const id = `car_${r.id}`;
       active.add(id);
       const tex = this.atlas.vehicles[r.vehicleId] ?? this.atlas.vehicles['volt_mini_gt']!;
+      const cfg = vehicleById(r.vehicleId);
       const lean = Math.sin(r.angle) * 0.04 * Math.min(1, r.speed / 200);
       const boostScale = r.boostMs > 0 || r.overchargeMs > 0 ? 1.04 : 1;
-      const elevScale = elevationVisualScale(r.elevationGrade);
-      this.entities.set(id, tex, r.x, r.y, r.angle + Math.PI / 2 + lean, VEHICLE_SCALE * boostScale * elevScale, {
+      this.entities.set(id, tex, r.x, r.y, r.angle + Math.PI / 2 + lean, VEHICLE_SCALE * boostScale, {
+        tint: this.atlas.vehicles[r.vehicleId] ? 0xffffff : cfg.color,
         glow:
           r.boostMs > 0 || r.overchargeMs > 0
             ? { texture: this.atlas.glow, alpha: 0.45 + pulseFast * 0.2, scale: 1.6 }
             : r.isPlayer
-              ? { texture: this.atlas.glow, alpha: 0.04, scale: 1.2 }
+              ? { texture: this.atlas.glow, alpha: 0.12 + pulse * 0.08, scale: 1.35 }
               : undefined,
       });
     }
@@ -290,12 +278,6 @@ export class RaceRenderer {
     this.shadows.hideExcept(active);
     this.entities.hideExcept(active);
 
-    if (state.mode === 'elimination_camera') {
-      const leader = leaderRacer(state.racers);
-      if (leader) {
-        this.layers.fx.circle(leader.x, leader.y, 320).stroke({ color: 0xffffff, width: 2, alpha: 0.12 });
-      }
-    }
   }
 
   private detectPickupCollects(state: RaceState, player: RacerState | undefined): void {
@@ -321,71 +303,6 @@ export class RaceRenderer {
 function drawSlipZones(g: Graphics, track: TrackDef): void {
   for (const z of track.slipZones) {
     g.roundRect(z.x, z.y, z.w, z.h, 8).fill({ color: 0x60c0ff, alpha: 0.22 });
-  }
-}
-
-function drawGimmickZones(g: Graphics, track: TrackDef, state: RaceState, t: number): void {
-  const pulse = 0.5 + 0.5 * Math.sin(t * 0.006);
-  for (const zone of track.heatZones ?? []) {
-    g.roundRect(zone.x, zone.y, zone.w, zone.h, 6).fill({ color: 0xff6020, alpha: 0.18 + pulse * 0.1 });
-    g.roundRect(zone.x, zone.y, zone.w, zone.h, 6).stroke({ color: 0xff9040, width: 1, alpha: 0.35 });
-  }
-  for (const cell of track.photocells ?? []) {
-    g.rect(cell.x, cell.y, cell.w, cell.h).stroke({ color: 0xffa030, width: 1, alpha: 0.5 });
-    g.rect(cell.x, cell.y, cell.w, cell.h).fill({ color: 0xffa030, alpha: 0.08 });
-  }
-  for (const sp of track.sprinklers ?? []) {
-    const active = state.gimmickState.flags[`sprinkler_${sp.id}`];
-    const slip = track.slipZones.find((z) => z.id === sp.slipId);
-    if (slip && active) {
-      g.roundRect(slip.x, slip.y, slip.w, slip.h, 8).fill({ color: 0x40a0ff, alpha: 0.35 + pulse * 0.15 });
-    }
-  }
-  for (const sig of track.trafficSignals ?? []) {
-    const green = state.gimmickState.flags[`sig_${sig.id}`];
-    g.circle(sig.gateIds[0] ? track.gates.find((x) => x.id === sig.gateIds[0])?.x ?? 0 : 0, 0, 8).fill({
-      color: green ? 0x40ff80 : 0xff4040,
-      alpha: 0.8,
-    });
-  }
-  for (const tr of track.trampolines ?? []) {
-    g.roundRect(tr.x, tr.y, tr.w, tr.h, 4).fill({ color: 0xa0a0ff, alpha: 0.35 });
-    g.roundRect(tr.x, tr.y, tr.w, tr.h, 4).stroke({ color: 0xffffff, width: 1, alpha: 0.4 });
-  }
-  for (const sector of track.rhythmSectors ?? []) {
-    const active = state.gimmickState.flags[`rhythm_${sector.id}`];
-    g.roundRect(sector.x, sector.y, sector.w, sector.h, 8).fill({
-      color: active ? 0xff40ff : 0x401040,
-      alpha: active ? 0.2 : 0.12,
-    });
-  }
-  for (const z of track.elevationZones ?? []) {
-    const uphill = z.grade < 0;
-    const color = z.ramp ? 0xff9040 : uphill ? 0x5060a0 : 0x408060;
-    g.roundRect(z.x, z.y, z.w, z.h, 8).fill({ color, alpha: 0.22 + pulse * 0.08 });
-    g.roundRect(z.x, z.y, z.w, z.h, 8).stroke({ color, width: 1.5, alpha: 0.45 });
-    if (z.ramp) {
-      const cx = z.x + z.w * 0.5;
-      const cy = z.y + z.h * 0.5;
-      g.moveTo(cx - 18, cy + 8);
-      g.lineTo(cx, cy - 12);
-      g.lineTo(cx + 18, cy + 8);
-      g.stroke({ color: 0xffffff, width: 2, alpha: 0.5 });
-    }
-  }
-  if (state.mode === 'hazard_run') {
-    g.rect(20, 20, 140, 24).fill({ color: 0x000000, alpha: 0.45 });
-    g.rect(24, 24, 132 * Math.min(1, state.hazardIntensity / 2.5), 16).fill({
-      color: 0xff4040,
-      alpha: 0.7,
-    });
-  }
-}
-
-function drawCheckpoints(g: Graphics, track: TrackDef): void {
-  for (const cp of track.checkpoints) {
-    g.circle(cp.x, cp.y, 18).stroke({ color: 0xffffff, width: 2, alpha: 0.65 });
-    g.circle(cp.x, cp.y, 8).fill({ color: 0x40c0ff, alpha: 0.85 });
   }
 }
 
