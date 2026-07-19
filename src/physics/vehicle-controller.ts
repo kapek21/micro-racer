@@ -1,12 +1,6 @@
-import type { PlayerInput, RaceState, RacerState, TrackDef } from '../core/types.js';
+import type { PlayerInput, RacerState, TrackDef } from '../core/types.js';
 import { vehicleById } from '../config/vehicles.js';
 import { buildTrackSamples, clampToTrack, isOnTrack, type TrackSample } from './track-math.js';
-import { isSprinklerSlipActive, rhythmSectorGripMult } from '../environment/gimmicks.js';
-import {
-  applyElevation,
-  elevationAccelMult,
-  elevationSpeedMult,
-} from '../environment/elevation.js';
 
 export function updateVehicle(
   racer: RacerState,
@@ -14,19 +8,15 @@ export function updateVehicle(
   track: TrackDef,
   samples: TrackSample[],
   dt: number,
-  raceState?: RaceState,
 ): void {
   const cfg = vehicleById(racer.vehicleId);
   const onTrack = isOnTrack(track, samples, racer.x, racer.y);
-  const elev = applyElevation(racer, track);
 
   let traction = cfg.traction;
   if (racer.gripMs > 0) traction = Math.min(1.08, traction + 0.14);
   if (racer.overchargeMs > 0) traction *= 0.78;
   if (racer.empSlowMs > 0) traction *= 0.72;
-  if (inSlipZone(racer, track, raceState)) traction *= 0.68;
-  if (inHeatZone(racer, track)) traction *= 0.72;
-  if (raceState) traction *= rhythmSectorGripMult(raceState, track, racer);
+  if (inSlipZone(racer, track)) traction *= 0.68;
 
   const steer = Math.max(-1, Math.min(1, input.steer));
   const cos = Math.cos(racer.angle);
@@ -40,9 +30,8 @@ export function updateVehicle(
   if (racer.overchargeMs > 0) maxSpeed *= 1.22;
   if (!onTrack) maxSpeed *= 0.62;
   if (racer.empSlowMs > 0) maxSpeed *= 0.68;
-  maxSpeed *= elevationSpeedMult(elev.grade, elev.ramp);
 
-  const accel = cfg.acceleration * (onTrack ? 1 : 0.48) * elevationAccelMult(elev.grade);
+  const accel = cfg.acceleration * (onTrack ? 1 : 0.48);
   if (input.brake) {
     forward *= Math.exp(-7.5 * dt);
   } else {
@@ -100,16 +89,8 @@ export function updateVehicle(
   }
 }
 
-function inSlipZone(racer: RacerState, track: TrackDef, raceState?: RaceState): boolean {
+function inSlipZone(racer: RacerState, track: TrackDef): boolean {
   for (const z of track.slipZones) {
-    if (z.id && raceState && !isSprinklerSlipActive(raceState, z.id)) continue;
-    if (racer.x >= z.x && racer.x <= z.x + z.w && racer.y >= z.y && racer.y <= z.y + z.h) return true;
-  }
-  return false;
-}
-
-function inHeatZone(racer: RacerState, track: TrackDef): boolean {
-  for (const z of track.heatZones ?? []) {
     if (racer.x >= z.x && racer.x <= z.x + z.w && racer.y >= z.y && racer.y <= z.y + z.h) return true;
   }
   return false;

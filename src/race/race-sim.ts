@@ -164,7 +164,7 @@ export function tickRace(
 
   state.timeMs += dtMs;
   tickHazards(state.hazards, track.hazards, dt);
-  tickPickups(state.pickups, dtMs);
+  tickPickups(state.pickups, dtMs, track.id, state.offensivePickupsAllowed);
   tickMines(state.mines, state.racers, dtMs);
   tickFoam(state.foamPatches, state.racers, dtMs);
   tickDroneZap(state.racers);
