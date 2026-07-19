@@ -122,7 +122,7 @@ export function resolveRacerCollision(a: RacerState, b: RacerState): void {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const dist = Math.hypot(dx, dy) || 1;
-  const minD = 30;
+  const minD = 18;
   if (dist >= minD) return;
 
   const nx = dx / dist;

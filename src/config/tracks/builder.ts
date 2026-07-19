@@ -33,7 +33,7 @@ function deriveStarts(centerline: Vec2[], trackWidth: number): { positions: Vec2
   const angle = Math.atan2(b.y - a.y, b.x - a.x);
   const nx = -Math.sin(angle);
   const ny = Math.cos(angle);
-  const spacing = trackWidth * 0.22;
+  const spacing = trackWidth * 0.18;
   const positions: Vec2[] = [
     { x: a.x - nx * spacing * 1.5, y: a.y - ny * spacing * 1.5 },
     { x: a.x - nx * spacing * 0.5, y: a.y - ny * spacing * 0.5 },

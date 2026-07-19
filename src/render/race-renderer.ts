@@ -16,12 +16,12 @@ import { SpritePool } from './sprite-pool.js';
 import { trackBackgroundTexture } from './track-background.js';
 import type { PixiApp } from './pixi-app.js';
 
-const VEHICLE_SCALE = 0.72;
-const HAZARD_SCALE = 0.68;
-const PICKUP_SCALE = 0.62;
-const TOKEN_SCALE = 0.58;
-const MINE_SCALE = 0.55;
-const PAD_SCALE = 0.95;
+const VEHICLE_SCALE = 0.38;
+const HAZARD_SCALE = 0.45;
+const PICKUP_SCALE = 0.48;
+const TOKEN_SCALE = 0.45;
+const MINE_SCALE = 0.42;
+const PAD_SCALE = 0.75;
 const WORLD_W = 1200;
 const WORLD_H = 800;
 
@@ -273,8 +273,8 @@ export class RaceRenderer {
     for (const r of sorted) {
       const sid = `shadow_${r.id}`;
       active.add(sid);
-      const shadowScale = 1 + Math.min(0.15, r.speed / 500);
-      this.shadows.set(sid, this.atlas.shadow, r.x + 2, r.y + 8, 0, shadowScale);
+      const shadowScale = VEHICLE_SCALE * (0.85 + Math.min(0.15, r.speed / 500));
+      this.shadows.set(sid, this.atlas.shadow, r.x + 1, r.y + 4, 0, shadowScale);
     }
 
     for (const r of sorted) {
@@ -391,7 +391,7 @@ function drawLabels(labels: Container, state: RaceState): void {
     });
     label.anchor.set(0.5, 1);
     label.x = r.x;
-    label.y = r.y - 30;
+    label.y = r.y - 18;
     labels.addChild(label);
   }
 }
