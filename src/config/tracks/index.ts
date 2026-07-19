@@ -1,48 +1,16 @@
-import type { HazardDef, HazardKind } from '../../core/types.js';
 import { WORLD_H, WORLD_W } from '../../core/types.js';
 import { buildTrack, defaultPickups, figure8Centerline, sampleOnFigure8 } from './builder.js';
 
 const CX = WORLD_W / 2;
 const CY = WORLD_H / 2;
 
-const HAZARD_SET_KIND: Record<string, HazardKind> = {
-  vacuum: 'robot_vacuum',
-  mower: 'robot_mower',
-  heat: 'conveyor',
-  oil: 'conveyor',
-  wind: 'drone_drop',
-  clutter: 'drone_drop',
-};
-
 function hazardsForSets(
-  sets: string[],
-  p: (t: number) => { x: number; y: number },
-): HazardDef[] {
-  const kind = HAZARD_SET_KIND[sets[0] ?? 'vacuum'] ?? 'robot_vacuum';
-  const speed = kind === 'drone_drop' ? 160 : kind === 'conveyor' ? 90 : 120;
-  const width = kind === 'conveyor' ? 48 : 32;
-  return [
-    {
-      id: 'haz1',
-      kind,
-      x1: p(0.25).x,
-      y1: p(0.25).y,
-      x2: p(0.4).x,
-      y2: p(0.4).y,
-      speed,
-      width,
-    },
-    {
-      id: 'haz2',
-      kind,
-      x1: p(0.7).x,
-      y1: p(0.7).y,
-      x2: p(0.88).x,
-      y2: p(0.88).y,
-      speed: speed * 0.85,
-      width,
-    },
-  ];
+  _sets: string[],
+  _p: (t: number) => { x: number; y: number },
+): never[] {
+  // Figure-8 Lovable tracks bake scenery into the art; moving hazards on the
+  // centerline felt like the old stadium build (vacuums blocking the racing line).
+  return [];
 }
 
 function figure8Track(opts: {
@@ -85,7 +53,7 @@ function figure8Track(opts: {
       { x: p(0.12).x - 30, y: p(0.12).y - 16, w: 60, h: 32 },
       { x: p(0.62).x - 30, y: p(0.62).y - 16, w: 60, h: 32 },
     ],
-    slipZones: [{ x: p(0.38).x - 50, y: p(0.38).y - 30, w: 100, h: 60 }],
+    slipZones: [],
     pickups: defaultPickups(['p1', 'p2', 'p3'], [p(0.2), p(0.45), p(0.78)]),
     tokens: [
       { id: 't1', x: p(0.3).x, y: p(0.3).y },

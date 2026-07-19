@@ -3,11 +3,13 @@ import {
   AI_VEHICLE_SPRITE_URLS,
   BIOME_SPRITE_URLS,
   POWERUP_ICON_URLS,
+  TRACK_THUMB_URLS,
   VEHICLE_SPRITE_URLS,
 } from '../config/asset-paths.js';
 import { POWERUPS } from '../config/powerups.js';
 import { createSpriteAtlas, type SpriteAtlas } from './sprite-atlas.js';
 import { setTablePhotoTextures } from './table-photo.js';
+import { setTrackBackgroundTextures } from './track-background.js';
 
 const TABLE_BIOMES = [
   'kitchen',
@@ -100,6 +102,21 @@ async function tryKeyed(
   }
 }
 
+async function loadTrackBackgrounds(): Promise<Record<string, Texture>> {
+  const out: Record<string, Texture> = {};
+  await Promise.all(
+    Object.entries(TRACK_THUMB_URLS).map(async ([id, url]) => {
+      try {
+        const img = await loadImage(url);
+        out[id] = Texture.from(img);
+      } catch {
+        console.warn(`[assets] track background missing: ${id}`);
+      }
+    }),
+  );
+  return out;
+}
+
 async function loadTablePhotos(): Promise<Record<string, Texture>> {
   const out: Record<string, Texture> = {};
   await Promise.all(
@@ -177,6 +194,7 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
       biomes,
       powerups,
       tables,
+      trackBgs,
     ] = await Promise.all([
       tryKeyed('/assets/sprites/hazards/robot_vacuum.png', 96, 96),
       tryKeyed('/assets/sprites/hazards/robot_mower.png', 96, 96),
@@ -192,9 +210,11 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
       loadBiomes(),
       loadPowerupIcons(procedural),
       loadTablePhotos(),
+      loadTrackBackgrounds(),
     ]);
 
     setTablePhotoTextures(tables);
+    setTrackBackgroundTextures(trackBgs);
 
     // If core race sprites failed entirely, fall back fully.
     if (!vacuum || !pickup || !boostPad) {

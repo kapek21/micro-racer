@@ -13,7 +13,7 @@ import { drawAtmosphere, tickAtmosphereParticles } from './atmosphere.js';
 import { drawBiome, drawTrack } from './track-draw.js';
 import { drawVehicleFx } from './vehicle-draw.js';
 import { SpritePool } from './sprite-pool.js';
-import { hasTablePhotoPngs, tablePhotoTexture } from './table-photo.js';
+import { trackBackgroundTexture } from './track-background.js';
 import type { PixiApp } from './pixi-app.js';
 
 const VEHICLE_SCALE = 0.72;
@@ -22,6 +22,8 @@ const PICKUP_SCALE = 0.62;
 const TOKEN_SCALE = 0.58;
 const MINE_SCALE = 0.55;
 const PAD_SCALE = 0.95;
+const WORLD_W = 1200;
+const WORLD_H = 800;
 
 export class RaceRenderer {
   private readonly layers: {
@@ -34,8 +36,8 @@ export class RaceRenderer {
   };
   private readonly biomeLayer: Container;
   private readonly spriteLayer: Container;
-  private readonly tablePhoto: Sprite;
-  private tableBiome = '';
+  private readonly raceBg: Sprite;
+  private raceBgTrackId = '';
   private readonly biomeDecos: SpritePool;
   private readonly shadows: SpritePool;
   private readonly entities: SpritePool;
@@ -63,16 +65,15 @@ export class RaceRenderer {
     };
     this.biomeLayer = new Container();
     this.spriteLayer = new Container();
-    this.tablePhoto = new Sprite();
-    this.tablePhoto.width = 1200;
-    this.tablePhoto.height = 800;
-    this.tablePhoto.alpha = 0.92;
+    this.raceBg = new Sprite();
+    this.raceBg.anchor.set(0.5);
+    this.raceBg.position.set(WORLD_W / 2, WORLD_H / 2);
     this.biomeDecos = new SpritePool(this.biomeLayer);
     this.shadows = new SpritePool(this.spriteLayer);
     this.entities = new SpritePool(this.spriteLayer);
     this.labels = new Container();
 
-    pixi.camera.addChild(this.tablePhoto);
+    pixi.camera.addChild(this.raceBg);
     pixi.camera.addChild(this.layers.bg);
     pixi.camera.addChild(this.biomeLayer);
     pixi.camera.addChild(this.layers.track);
@@ -98,7 +99,10 @@ export class RaceRenderer {
   sync(state: RaceState, track: TrackDef, dtMs: number): void {
     this.t += dtMs;
     this.particles.tick(dtMs);
-    tickAtmosphereParticles(this.particles, track, this.t);
+    const trackArtEarly = trackBackgroundTexture(track.id);
+    if (!trackArtEarly) {
+      tickAtmosphereParticles(this.particles, track, this.t);
+    }
 
     const player = state.racers.find((r) => r.isPlayer);
     const follow = player;
@@ -145,27 +149,36 @@ export class RaceRenderer {
     this.labels.removeChildren();
 
     const active = new Set<string>();
+    const trackArt = trackBackgroundTexture(track.id);
+    const photoMode = !!trackArt;
 
-    if (hasTablePhotoPngs()) {
-      if (this.tableBiome !== track.biome) {
-        this.tableBiome = track.biome;
-        this.tablePhoto.texture = tablePhotoTexture(track.biome);
+    if (trackArt) {
+      if (this.raceBgTrackId !== track.id) {
+        this.raceBgTrackId = track.id;
+        this.raceBg.texture = trackArt;
+        // Cover-fit Lovable art into the 1200×800 world
+        const tw = trackArt.width || 1;
+        const th = trackArt.height || 1;
+        const scale = Math.max(WORLD_W / tw, WORLD_H / th);
+        this.raceBg.width = tw * scale;
+        this.raceBg.height = th * scale;
       }
-      this.tablePhoto.visible = true;
-      // Light tint overlay so neon track still reads on photo
+      this.raceBg.visible = true;
       this.layers.bg.clear();
-      this.layers.bg.rect(0, 0, 1200, 800).fill({ color: track.bgColor, alpha: 0.35 });
-      this.layers.bg.circle(600, 400, 420).fill({ color: track.accentColor, alpha: 0.06 });
     } else {
-      this.tablePhoto.visible = false;
+      this.raceBg.visible = false;
       drawBiome(this.layers.bg, track, this.t);
+      // Only scatter biome props when we have no Lovable track art.
+      syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active);
     }
-    syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active);
-    drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t);
 
-    drawSlipZones(this.layers.decals, track);
-    drawGates(this.layers.decals, track, state);
-    drawCameraTraps(this.layers.decals, track, this.t);
+    drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t, { photoMode });
+
+    if (!photoMode) {
+      drawSlipZones(this.layers.decals, track);
+      drawGates(this.layers.decals, track, state);
+      drawCameraTraps(this.layers.decals, track, this.t);
+    }
     drawFoam(this.layers.decals, state);
 
     const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.005);
@@ -274,7 +287,7 @@ export class RaceRenderer {
       const cfg = vehicleById(r.vehicleId);
       const lean = Math.sin(r.angle) * 0.04 * Math.min(1, r.speed / 200);
       const boostScale = r.boostMs > 0 || r.overchargeMs > 0 ? 1.04 : 1;
-      this.entities.set(id, tex, r.x, r.y, r.angle + Math.PI / 2 + lean, VEHICLE_SCALE * boostScale, {
+      this.entities.set(id, tex, r.x, r.y, r.angle + lean, VEHICLE_SCALE * boostScale, {
         tint: this.atlas.vehicles[r.vehicleId] ? 0xffffff : cfg.color,
         glow:
           r.boostMs > 0 || r.overchargeMs > 0
@@ -292,7 +305,9 @@ export class RaceRenderer {
     }
 
     drawParticles(this.layers.particles, this.particles);
-    drawAtmosphere(this.layers.atmosphere, track, this.t);
+    if (!photoMode) {
+      drawAtmosphere(this.layers.atmosphere, track, this.t);
+    }
     drawLabels(this.labels, state);
 
     this.biomeDecos.hideExcept(active);

@@ -55,7 +55,29 @@ export function drawTrack(
   samples: TrackSample[],
   assets: ProceduralAssets,
   t: number,
+  opts?: { photoMode?: boolean },
 ): void {
+  // Lovable track art already paints asphalt + kerbs — keep only a faint guide so physics path is readable.
+  if (opts?.photoMode) {
+    const dashOffset = (t * 0.08) % 48;
+    for (let i = 0; i < samples.length - 1; i++) {
+      const a = samples[i]!;
+      const b = samples[i + 1]!;
+      const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+      const dashes = Math.floor(segLen / 28);
+      for (let d = 0; d < dashes; d++) {
+        const phase = (d * 28 + dashOffset) % 56;
+        if (phase > 28) continue;
+        const t0 = d / Math.max(1, dashes);
+        const t1 = Math.min(1, t0 + 0.035);
+        g.moveTo(a.x + (b.x - a.x) * t0, a.y + (b.y - a.y) * t0);
+        g.lineTo(a.x + (b.x - a.x) * t1, a.y + (b.y - a.y) * t1);
+        g.stroke({ color: 0xffffff, width: 2, alpha: 0.12 });
+      }
+    }
+    return;
+  }
+
   const hw = track.trackWidth * 0.5;
   const kerbW = 14;
   const pulse = 0.5 + 0.5 * Math.sin(t * 0.004);
