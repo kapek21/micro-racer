@@ -1,8 +1,49 @@
+import type { HazardDef, HazardKind } from '../../core/types.js';
 import { WORLD_H, WORLD_W } from '../../core/types.js';
 import { buildTrack, defaultPickups, figure8Centerline, sampleOnFigure8 } from './builder.js';
 
 const CX = WORLD_W / 2;
 const CY = WORLD_H / 2;
+
+const HAZARD_SET_KIND: Record<string, HazardKind> = {
+  vacuum: 'robot_vacuum',
+  mower: 'robot_mower',
+  heat: 'conveyor',
+  oil: 'conveyor',
+  wind: 'drone_drop',
+  clutter: 'drone_drop',
+};
+
+function hazardsForSets(
+  sets: string[],
+  p: (t: number) => { x: number; y: number },
+): HazardDef[] {
+  const kind = HAZARD_SET_KIND[sets[0] ?? 'vacuum'] ?? 'robot_vacuum';
+  const speed = kind === 'drone_drop' ? 160 : kind === 'conveyor' ? 90 : 120;
+  const width = kind === 'conveyor' ? 48 : 32;
+  return [
+    {
+      id: 'haz1',
+      kind,
+      x1: p(0.25).x,
+      y1: p(0.25).y,
+      x2: p(0.4).x,
+      y2: p(0.4).y,
+      speed,
+      width,
+    },
+    {
+      id: 'haz2',
+      kind,
+      x1: p(0.7).x,
+      y1: p(0.7).y,
+      x2: p(0.88).x,
+      y2: p(0.88).y,
+      speed: speed * 0.85,
+      width,
+    },
+  ];
+}
 
 function figure8Track(opts: {
   id: string;
@@ -51,18 +92,7 @@ function figure8Track(opts: {
       { id: 't2', x: p(0.55).x, y: p(0.55).y },
       { id: 't3', x: p(0.85).x, y: p(0.85).y },
     ],
-    hazards: [
-      {
-        id: 'haz1',
-        kind: 'robot_vacuum',
-        x1: p(0.25).x,
-        y1: p(0.25).y,
-        x2: p(0.4).x,
-        y2: p(0.4).y,
-        speed: 120,
-        width: 32,
-      },
-    ],
+    hazards: hazardsForSets(opts.hazardSets, p),
   });
 }
 

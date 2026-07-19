@@ -38,7 +38,10 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
     return (
       <BuildMinigames
         surface={selectedTrack.surface}
-        onCancel={() => setSnapshot({ buildOpen: false, pendingBuild: null })}
+        onCancel={() => {
+          setSnapshot({ buildOpen: false, pendingBuild: null, phase: 'menu', message: '' });
+          onMenu();
+        }}
         onComplete={(result) => {
           setSnapshot({ buildOpen: false, pendingBuild: result });
           onStart();
@@ -193,9 +196,9 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
           {snap.menuScreen === 'shop' && (
             <div className="max-h-80 space-y-2 overflow-y-auto text-xs">
               <p className="mb-2 text-[10px] text-white/45">
-                Traile zmieniają ślad za autem. Skiny pojazdów wrócą z grafikami.
+                Traile zmieniają ślad za autem podczas wyścigu.
               </p>
-              {COSMETICS.filter((c) => c.kind === 'trail' || c.kind === 'banner').map((c) => {
+              {COSMETICS.filter((c) => c.kind === 'trail').map((c) => {
                 const owned = profile.ownedCosmetics.includes(c.id);
                 const equipped = c.kind === 'trail' && equippedTrailId(profile) === c.id;
                 return (
@@ -243,7 +246,7 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-between p-3">
+      <div className="hud-top pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-between">
         <div className="panel text-xs">
           <div className="text-white/50">POZYCJA</div>
           <div className="font-display text-lg">
@@ -276,16 +279,16 @@ export function Hud({ onStart, onRestart, onMenu, racing }: HudProps): JSX.Eleme
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-between p-3">
+      <div className="hud-bottom-race pointer-events-none absolute z-10 flex justify-between gap-2">
         <div className="panel text-[10px]">
-          <div className="text-white/40">
+          <div className="truncate text-white/40">
             {snap.trackLabel} · {snap.surfaceLabel}
           </div>
           {snap.boostActive && <span className="text-orange-400">BOOST </span>}
           {snap.shieldActive && <span className="text-cyan-300">SHIELD </span>}
           {snap.heldPowerUp && <span className="text-pink-400">PWR: {snap.heldPowerUp}</span>}
         </div>
-        <div className="flex items-end gap-2">
+        <div className="flex shrink-0 items-end gap-2">
           <button
             type="button"
             className="pointer-events-auto panel px-2 py-1 text-[10px]"
@@ -377,12 +380,14 @@ function HowToPlay(): JSX.Element {
             <kbd className="kbd">A</kbd> / <kbd className="kbd">D</kbd> lub strzałki — skręt
           </li>
           <li>
-            <kbd className="kbd">Space</kbd> — boost
+            <kbd className="kbd">Space</kbd> — boost · <kbd className="kbd">E</kbd> — power-up
           </li>
           <li>
-            <kbd className="kbd">E</kbd> — użyj power-upa
+            <kbd className="kbd">S</kbd> / Shift — hamulec / drift (klawiatura)
           </li>
-          <li>Na telefonie: touch pad po bokach ekranu</li>
+          <li>
+            Telefon: lewy joystick (skręt), prawe przyciski BRAKE / PWR / BOOST / DRIFT
+          </li>
         </ul>
       </HowStep>
 

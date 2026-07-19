@@ -10,8 +10,16 @@ export function TouchControls(): JSX.Element | null {
   const joyActive = useRef(false);
   const joyOrigin = useRef({ x: 0, y: 0 });
   const [joyPos, setJoyPos] = useState({ x: 0, y: 0 });
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
+    const coarse =
+      typeof window !== 'undefined' &&
+      (window.matchMedia('(pointer: coarse)').matches ||
+        'ontouchstart' in window ||
+        (navigator.maxTouchPoints ?? 0) > 0);
+    setShow(coarse);
+
     (window as unknown as { __touchInput?: TouchInputBridge }).__touchInput = {
       poll: () => ({
         steer: steerRef.current,
@@ -31,8 +39,7 @@ export function TouchControls(): JSX.Element | null {
     };
   }, []);
 
-  const hasTouch = typeof window !== 'undefined' && 'ontouchstart' in window;
-  if (!hasTouch) return null;
+  if (!show) return null;
 
   const onJoyStart = (e: React.TouchEvent): void => {
     const t = e.touches[0];
@@ -62,7 +69,7 @@ export function TouchControls(): JSX.Element | null {
   return (
     <>
       <div
-        className="touch-joy-zone pointer-events-auto absolute bottom-20 left-4 z-10 md:hidden"
+        className="touch-joy-zone pointer-events-auto absolute z-20"
         onTouchStart={onJoyStart}
         onTouchMove={onJoyMove}
         onTouchEnd={onJoyEnd}
@@ -73,7 +80,7 @@ export function TouchControls(): JSX.Element | null {
         </div>
       </div>
 
-      <div className="pointer-events-auto absolute bottom-16 right-4 z-10 flex flex-col gap-3 md:hidden">
+      <div className="touch-actions pointer-events-auto absolute z-20 flex flex-col gap-2">
         <button
           type="button"
           className="touch-btn touch-btn-brake"
@@ -86,7 +93,7 @@ export function TouchControls(): JSX.Element | null {
         >
           BRAKE
         </button>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             type="button"
             className="touch-btn"

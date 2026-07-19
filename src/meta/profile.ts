@@ -51,6 +51,8 @@ export interface PlayerProfile {
   weeklyGoals: GoalProgress[];
   goalsDailyKey: string;
   goalsWeeklyKey: string;
+  /** Unique track ids won this week (for w_tracks goal). */
+  weeklyWinTrackIds: string[];
   totalRaces: number;
   totalWins: number;
 }
@@ -113,6 +115,7 @@ export function createDefaultProfile(): PlayerProfile {
     weeklyGoals: goals.weekly,
     goalsDailyKey: dayKey(),
     goalsWeeklyKey: weekKey(),
+    weeklyWinTrackIds: [],
     totalRaces: 0,
     totalWins: 0,
   };
@@ -136,6 +139,7 @@ export function loadProfile(): PlayerProfile {
       weeklyGoals: parsed.weeklyGoals ?? base.weeklyGoals,
       goalsDailyKey: parsed.goalsDailyKey ?? '',
       goalsWeeklyKey: parsed.goalsWeeklyKey ?? '',
+      weeklyWinTrackIds: parsed.weeklyWinTrackIds ?? [],
     };
     refreshGoalsIfNeeded(profile);
     return profile;
@@ -157,6 +161,7 @@ function refreshGoalsIfNeeded(profile: PlayerProfile): void {
   if (profile.goalsWeeklyKey !== w) {
     profile.weeklyGoals = fresh.weekly;
     profile.goalsWeeklyKey = w;
+    profile.weeklyWinTrackIds = [];
     dirty = true;
   }
   if (dirty) saveProfile(profile);
@@ -246,7 +251,13 @@ export function applyRaceResult(profile: PlayerProfile, result: RaceResultInput)
   bumpGoal(profile.dailyGoals, 'd_tokens', result.tokensCollected);
   bumpGoal(profile.dailyGoals, 'd_build', result.buildPoints);
   bumpGoal(profile.weeklyGoals, 'w_races', 1);
-  if (result.won) bumpGoal(profile.weeklyGoals, 'w_tracks', 1);
+  if (result.won) {
+    if (!profile.weeklyWinTrackIds.includes(result.trackId)) {
+      profile.weeklyWinTrackIds.push(result.trackId);
+    }
+    const g = profile.weeklyGoals.find((x) => x.id === 'w_tracks');
+    if (g) g.current = Math.min(g.target, profile.weeklyWinTrackIds.length);
+  }
   bumpGoal(profile.weeklyGoals, 'w_score', result.raceScore);
 
   payGoalRewards(profile);

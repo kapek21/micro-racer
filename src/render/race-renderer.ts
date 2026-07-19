@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import type { RaceState, RacerState, TrackDef } from '../core/types.js';
 import { vehicleById } from '../config/vehicles.js';
 import { getLateralSpeed } from '../physics/vehicle-controller.js';
@@ -13,6 +13,7 @@ import { drawAtmosphere, tickAtmosphereParticles } from './atmosphere.js';
 import { drawBiome, drawTrack } from './track-draw.js';
 import { drawVehicleFx } from './vehicle-draw.js';
 import { SpritePool } from './sprite-pool.js';
+import { hasTablePhotoPngs, tablePhotoTexture } from './table-photo.js';
 import type { PixiApp } from './pixi-app.js';
 
 const VEHICLE_SCALE = 0.72;
@@ -33,6 +34,8 @@ export class RaceRenderer {
   };
   private readonly biomeLayer: Container;
   private readonly spriteLayer: Container;
+  private readonly tablePhoto: Sprite;
+  private tableBiome = '';
   private readonly biomeDecos: SpritePool;
   private readonly shadows: SpritePool;
   private readonly entities: SpritePool;
@@ -60,11 +63,16 @@ export class RaceRenderer {
     };
     this.biomeLayer = new Container();
     this.spriteLayer = new Container();
+    this.tablePhoto = new Sprite();
+    this.tablePhoto.width = 1200;
+    this.tablePhoto.height = 800;
+    this.tablePhoto.alpha = 0.92;
     this.biomeDecos = new SpritePool(this.biomeLayer);
     this.shadows = new SpritePool(this.spriteLayer);
     this.entities = new SpritePool(this.spriteLayer);
     this.labels = new Container();
 
+    pixi.camera.addChild(this.tablePhoto);
     pixi.camera.addChild(this.layers.bg);
     pixi.camera.addChild(this.biomeLayer);
     pixi.camera.addChild(this.layers.track);
@@ -138,7 +146,20 @@ export class RaceRenderer {
 
     const active = new Set<string>();
 
-    drawBiome(this.layers.bg, track, this.t);
+    if (hasTablePhotoPngs()) {
+      if (this.tableBiome !== track.biome) {
+        this.tableBiome = track.biome;
+        this.tablePhoto.texture = tablePhotoTexture(track.biome);
+      }
+      this.tablePhoto.visible = true;
+      // Light tint overlay so neon track still reads on photo
+      this.layers.bg.clear();
+      this.layers.bg.rect(0, 0, 1200, 800).fill({ color: track.bgColor, alpha: 0.35 });
+      this.layers.bg.circle(600, 400, 420).fill({ color: track.accentColor, alpha: 0.06 });
+    } else {
+      this.tablePhoto.visible = false;
+      drawBiome(this.layers.bg, track, this.t);
+    }
     syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active);
     drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t);
 

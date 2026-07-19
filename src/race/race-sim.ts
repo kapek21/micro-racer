@@ -36,6 +36,7 @@ import {
 } from './mode-logic.js';
 
 let samplesCache: TrackSample[] = [];
+const aiSkillById = new Map<string, number>();
 
 export function createRaceState(
   track: TrackDef,
@@ -47,10 +48,15 @@ export function createRaceState(
   const modeCfg = gameModeById(mode);
   const lapCount = resolveLapCount(mode, track);
   const aiVehicles = ensureAiVehicles().slice(0, Math.max(0, modeCfg.racerCount - 1));
+  aiSkillById.clear();
 
   const racers: RacerState[] = [
     makeRacer('p0', playerVehicleId, true, track, 0),
-    ...aiVehicles.map((v, i) => makeRacer(`ai${i}`, v.id, false, track, i + 1)),
+    ...aiVehicles.map((v, i) => {
+      const id = `ai${i}`;
+      aiSkillById.set(id, 0.58 + i * 0.08 + Math.random() * 0.06);
+      return makeRacer(id, v.id, false, track, i + 1);
+    }),
   ];
 
   const pickups = initPickups(track.pickups);
@@ -183,9 +189,15 @@ export function tickRace(
 
     const input = racer.isPlayer
       ? playerInput
-      : aiInput(racer, samples, 0.55 + Math.random() * 0.25);
+      : aiInput(racer, samples, aiSkillById.get(racer.id) ?? 0.65, {
+          hazards: state.hazards,
+          hazardDefs: track.hazards,
+          slipZones: track.slipZones,
+          opponents: state.racers,
+          offensiveAllowed: state.offensivePickupsAllowed,
+        });
 
-    if (racer.isPlayer && playerInput.usePowerUp) {
+    if (input.usePowerUp) {
       useHeldPowerUp(racer, state.racers, state.mines, state.foamPatches);
     }
 
@@ -214,9 +226,13 @@ export function tickRace(
 
   rankRacers(state.racers);
 
-  if (isRaceComplete(state)) {
+  if (isRaceComplete(state, track.parTimeMs)) {
     state.phase = 'finished';
     const player = playerRacer(state);
+    if (!player.finished && !player.eliminated) {
+      player.finished = true;
+      player.finishTimeMs = state.timeMs;
+    }
     state.stylePoints = computeStylePoints(player, player.position);
     state.timePoints = computeTimePoints(player.finishTimeMs, track.parTimeMs, player.position);
     state.raceScore = computeRaceScore(state.buildPoints, state.timePoints);

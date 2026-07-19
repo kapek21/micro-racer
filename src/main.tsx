@@ -219,7 +219,14 @@ function App(): JSX.Element {
       <Hud
         onStart={startRace}
         onRestart={() => {
-          useHudStore.getState().setSnapshot({ buildOpen: true, pendingBuild: null });
+          stateRef.current = null;
+          finishedRef.current = false;
+          useHudStore.getState().setSnapshot({
+            phase: 'menu',
+            message: '',
+            pendingBuild: null,
+            buildOpen: true,
+          });
         }}
         onMenu={backToMenu}
         racing={phase !== 'menu' && !buildOpen}

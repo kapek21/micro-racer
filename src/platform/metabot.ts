@@ -33,10 +33,12 @@ export class MetabotBridge {
   start(): void {
     if (typeof window === 'undefined' || window.parent === window) return;
     window.addEventListener('message', this.onMessage);
-    this.send('READY', {
+    // Broadcast READY with * so Studio can discover us before INIT locks origin.
+    const ready = this.makeEnvelope('READY', {
       game_version: GAME_VERSION,
       capabilities: ['micro_racer', 'telemetry'],
     });
+    window.parent.postMessage(ready, '*');
   }
 
   stop(): void {
@@ -61,8 +63,12 @@ export class MetabotBridge {
     });
   }
 
-  private send(type: string, payload: Record<string, unknown>, correlationId?: string): void {
-    const env: Envelope = {
+  private makeEnvelope(
+    type: string,
+    payload: Record<string, unknown>,
+    correlationId?: string,
+  ): Envelope {
+    return {
       protocol: PROTOCOL,
       protocolVersion: PROTOCOL_VERSION,
       id: crypto.randomUUID(),
@@ -71,6 +77,10 @@ export class MetabotBridge {
       payload,
       ...(correlationId ? { correlationId } : {}),
     };
+  }
+
+  private send(type: string, payload: Record<string, unknown>, correlationId?: string): void {
+    const env = this.makeEnvelope(type, payload, correlationId);
     if (this.parentOrigin === null) {
       this.queue.push(env);
       return;

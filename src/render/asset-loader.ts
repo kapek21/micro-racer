@@ -7,6 +7,20 @@ import {
 } from '../config/asset-paths.js';
 import { POWERUPS } from '../config/powerups.js';
 import { createSpriteAtlas, type SpriteAtlas } from './sprite-atlas.js';
+import { setTablePhotoTextures } from './table-photo.js';
+
+const TABLE_BIOMES = [
+  'kitchen',
+  'roof',
+  'garden',
+  'garage',
+  'balcony',
+  'desk',
+  'city',
+  'living',
+  'security',
+  'warehouse',
+] as const;
 
 const KEY = { r: 6, g: 10, b: 20 };
 const KEY_THRESHOLD = 38;
@@ -86,6 +100,21 @@ async function tryKeyed(
   }
 }
 
+async function loadTablePhotos(): Promise<Record<string, Texture>> {
+  const out: Record<string, Texture> = {};
+  await Promise.all(
+    TABLE_BIOMES.map(async (biome) => {
+      try {
+        const img = await loadImage(`/assets/sprites/tables/${biome}.png`);
+        out[biome] = Texture.from(img);
+      } catch {
+        /* procedural fallback via table-photo.ts */
+      }
+    }),
+  );
+  return out;
+}
+
 async function loadBiomes(): Promise<Record<string, Texture>> {
   const biomes: Record<string, Texture> = {};
   await Promise.all(
@@ -147,6 +176,7 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
       vehicles,
       biomes,
       powerups,
+      tables,
     ] = await Promise.all([
       tryKeyed('/assets/sprites/hazards/robot_vacuum.png', 96, 96),
       tryKeyed('/assets/sprites/hazards/robot_mower.png', 96, 96),
@@ -161,7 +191,10 @@ export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
       loadVehicles(procedural),
       loadBiomes(),
       loadPowerupIcons(procedural),
+      loadTablePhotos(),
     ]);
+
+    setTablePhotoTextures(tables);
 
     // If core race sprites failed entirely, fall back fully.
     if (!vacuum || !pickup || !boostPad) {

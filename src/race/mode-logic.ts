@@ -57,7 +57,10 @@ export function computeCoins(state: RaceState): number {
   return coins;
 }
 
-export function isRaceComplete(state: RaceState): boolean {
+export function isRaceComplete(state: RaceState, parTimeMs = 0): boolean {
+  const player = state.racers.find((r) => r.isPlayer);
+  if (player && (player.finished || player.eliminated)) return true;
+  if (parTimeMs > 0 && state.timeMs >= parTimeMs * 2.5) return true;
   return state.racers.every((r) => r.finished || r.eliminated);
 }
 
