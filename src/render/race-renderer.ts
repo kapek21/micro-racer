@@ -8,8 +8,6 @@ import type { SpriteAtlas } from './sprite-atlas.js';
 import { loadSpriteAtlas } from './asset-loader.js';
 import { ParticleSystem } from './particle-system.js';
 import { RaceCamera } from './race-camera.js';
-import { syncBiomeDecorations } from './biome-decorations.js';
-import { drawAtmosphere, tickAtmosphereParticles } from './atmosphere.js';
 import { drawBiome, drawTrack } from './track-draw.js';
 import { drawVehicleFx } from './vehicle-draw.js';
 import { SpritePool } from './sprite-pool.js';
@@ -32,13 +30,10 @@ export class RaceRenderer {
     decals: Graphics;
     fx: Graphics;
     particles: Graphics;
-    atmosphere: Graphics;
   };
-  private readonly biomeLayer: Container;
   private readonly spriteLayer: Container;
   private readonly raceBg: Sprite;
   private raceBgTrackId = '';
-  private readonly biomeDecos: SpritePool;
   private readonly shadows: SpritePool;
   private readonly entities: SpritePool;
   private readonly labels: Container;
@@ -61,27 +56,22 @@ export class RaceRenderer {
       decals: new Graphics(),
       fx: new Graphics(),
       particles: new Graphics(),
-      atmosphere: new Graphics(),
     };
-    this.biomeLayer = new Container();
     this.spriteLayer = new Container();
     this.raceBg = new Sprite();
     this.raceBg.anchor.set(0.5);
     this.raceBg.position.set(WORLD_W / 2, WORLD_H / 2);
-    this.biomeDecos = new SpritePool(this.biomeLayer);
     this.shadows = new SpritePool(this.spriteLayer);
     this.entities = new SpritePool(this.spriteLayer);
     this.labels = new Container();
 
     pixi.camera.addChild(this.raceBg);
     pixi.camera.addChild(this.layers.bg);
-    pixi.camera.addChild(this.biomeLayer);
     pixi.camera.addChild(this.layers.track);
     pixi.camera.addChild(this.spriteLayer);
     pixi.camera.addChild(this.layers.decals);
     pixi.camera.addChild(this.layers.fx);
     pixi.camera.addChild(this.layers.particles);
-    pixi.camera.addChild(this.layers.atmosphere);
     pixi.camera.addChild(this.labels);
   }
 
@@ -99,10 +89,6 @@ export class RaceRenderer {
   sync(state: RaceState, track: TrackDef, dtMs: number): void {
     this.t += dtMs;
     this.particles.tick(dtMs);
-    const trackArtEarly = trackBackgroundTexture(track.id);
-    if (!trackArtEarly) {
-      tickAtmosphereParticles(this.particles, track, this.t);
-    }
 
     const player = state.racers.find((r) => r.isPlayer);
     const follow = player;
@@ -145,37 +131,28 @@ export class RaceRenderer {
     this.layers.decals.clear();
     this.layers.fx.clear();
     this.layers.particles.clear();
-    this.layers.atmosphere.clear();
     this.labels.removeChildren();
 
     const active = new Set<string>();
     const trackArt = trackBackgroundTexture(track.id);
-    const photoMode = !!trackArt;
 
+    // Lovable boards only — biomes / tables / atmosphere deferred.
     if (trackArt) {
       if (this.raceBgTrackId !== track.id) {
         this.raceBgTrackId = track.id;
         this.raceBg.texture = trackArt;
-        // Stretch Lovable art to the physics world so the figure-8 center matches 600×400.
         this.raceBg.width = WORLD_W;
         this.raceBg.height = WORLD_H;
       }
       this.raceBg.visible = true;
-      this.layers.bg.clear();
     } else {
       this.raceBg.visible = false;
       drawBiome(this.layers.bg, track, this.t);
-      // Only scatter biome props when we have no Lovable track art.
-      syncBiomeDecorations(this.biomeDecos, this.atlas, track, this.t, active);
     }
 
-    drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t, { photoMode });
-
-    if (!photoMode) {
-      drawSlipZones(this.layers.decals, track);
-      drawGates(this.layers.decals, track, state);
-      drawCameraTraps(this.layers.decals, track, this.t);
-    }
+    drawTrack(this.layers.track, track, getTrackSamples(), this.atlas, this.t, {
+      photoMode: !!trackArt,
+    });
     drawFoam(this.layers.decals, state);
 
     const pulse = 0.5 + 0.5 * Math.sin(this.t * 0.005);
@@ -302,12 +279,8 @@ export class RaceRenderer {
     }
 
     drawParticles(this.layers.particles, this.particles);
-    if (!photoMode) {
-      drawAtmosphere(this.layers.atmosphere, track, this.t);
-    }
     drawLabels(this.labels, state);
 
-    this.biomeDecos.hideExcept(active);
     this.shadows.hideExcept(active);
     this.entities.hideExcept(active);
 
@@ -330,29 +303,6 @@ export class RaceRenderer {
       }
     }
     this.prevActivePickups = current;
-  }
-}
-
-function drawSlipZones(g: Graphics, track: TrackDef): void {
-  for (const z of track.slipZones) {
-    g.roundRect(z.x, z.y, z.w, z.h, 8).fill({ color: 0x60c0ff, alpha: 0.22 });
-  }
-}
-
-function drawGates(g: Graphics, track: TrackDef, state: RaceState): void {
-  for (const gate of track.gates) {
-    const open = state.gateOpen[gate.id];
-    g.rect(gate.x, gate.y, gate.w, gate.h).fill({
-      color: open ? 0x40ff80 : 0xff4040,
-      alpha: open ? 0.25 : 0.6,
-    });
-  }
-}
-
-function drawCameraTraps(g: Graphics, track: TrackDef, t: number): void {
-  for (const cam of track.cameraTraps) {
-    const pulse = 0.4 + 0.3 * Math.sin(t * 0.01);
-    g.circle(cam.x, cam.y, cam.radius).stroke({ color: 0xff4080, width: 1, alpha: pulse * 0.35 });
   }
 }
 

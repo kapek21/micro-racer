@@ -13,6 +13,10 @@ export const AI_VEHICLE_SPRITE_URLS: Record<string, string> = {
   ai_speed: '/assets/sprites/vehicles/ai_speed.png',
 };
 
+/**
+ * Extra prop sprites (fridge, island, …) — deferred.
+ * Race look comes from Lovable TRACK_THUMB_URLS boards.
+ */
 export const BIOME_SPRITE_URLS: Record<string, string> = {
   kitchen_island: '/assets/sprites/biomes/kitchen_island.png',
   kitchen_fridge: '/assets/sprites/biomes/kitchen_fridge.png',
@@ -68,7 +72,7 @@ export const POWERUP_ICON_URLS: Record<string, string> = {
   magnet_pull: '/assets/sprites/ui/powerups/magnet_pull.png',
 };
 
-/** Menu track thumbnails. */
+/** Menu track thumbnails — also used as full race boards (Lovable). */
 export const TRACK_THUMB_URLS: Record<string, string> = {
   kitchen_8: '/assets/sprites/ui/tracks/kitchen_8.png',
   solar_8: '/assets/sprites/ui/tracks/solar_8.png',

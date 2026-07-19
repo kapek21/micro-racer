@@ -1,28 +1,13 @@
 import { Texture } from 'pixi.js';
 import {
   AI_VEHICLE_SPRITE_URLS,
-  BIOME_SPRITE_URLS,
   POWERUP_ICON_URLS,
   TRACK_THUMB_URLS,
   VEHICLE_SPRITE_URLS,
 } from '../config/asset-paths.js';
 import { POWERUPS } from '../config/powerups.js';
 import { createSpriteAtlas, type SpriteAtlas } from './sprite-atlas.js';
-import { setTablePhotoTextures } from './table-photo.js';
 import { setTrackBackgroundTextures } from './track-background.js';
-
-const TABLE_BIOMES = [
-  'kitchen',
-  'roof',
-  'garden',
-  'garage',
-  'balcony',
-  'desk',
-  'city',
-  'living',
-  'security',
-  'warehouse',
-] as const;
 
 const KEY = { r: 6, g: 10, b: 20 };
 const KEY_THRESHOLD = 38;
@@ -78,7 +63,6 @@ async function loadKeyedTexture(url: string, w: number, h = w): Promise<Texture>
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
 
   const imageData = ctx.getImageData(0, 0, w, h);
-  // Only chroma-key when the image is mostly opaque (old Lovable scene frames).
   let transparent = 0;
   const px = imageData.data;
   for (let i = 3; i < px.length; i += 4) {
@@ -90,11 +74,7 @@ async function loadKeyedTexture(url: string, w: number, h = w): Promise<Texture>
   return Texture.from(canvas);
 }
 
-async function tryKeyed(
-  url: string,
-  w: number,
-  h = w,
-): Promise<Texture | null> {
+async function tryKeyed(url: string, w: number, h = w): Promise<Texture | null> {
   try {
     return await loadKeyedTexture(url, w, h);
   } catch {
@@ -102,6 +82,7 @@ async function tryKeyed(
   }
 }
 
+/** Lovable figure-8 boards — primary race backdrop. */
 async function loadTrackBackgrounds(): Promise<Record<string, Texture>> {
   const out: Record<string, Texture> = {};
   await Promise.all(
@@ -110,43 +91,14 @@ async function loadTrackBackgrounds(): Promise<Record<string, Texture>> {
         const img = await loadImage(url);
         out[id] = Texture.from(img);
       } catch {
-        console.warn(`[assets] track background missing: ${id}`);
+        console.warn(`[assets] Lovable track missing: ${id}`);
       }
     }),
   );
   return out;
 }
 
-async function loadTablePhotos(): Promise<Record<string, Texture>> {
-  const out: Record<string, Texture> = {};
-  await Promise.all(
-    TABLE_BIOMES.map(async (biome) => {
-      try {
-        const img = await loadImage(`/assets/sprites/tables/${biome}.png`);
-        out[biome] = Texture.from(img);
-      } catch {
-        /* procedural fallback via table-photo.ts */
-      }
-    }),
-  );
-  return out;
-}
-
-async function loadBiomes(): Promise<Record<string, Texture>> {
-  const biomes: Record<string, Texture> = {};
-  await Promise.all(
-    Object.entries(BIOME_SPRITE_URLS).map(async ([key, url]) => {
-      const tex = await tryKeyed(url, 160, 160);
-      if (tex) biomes[key] = tex;
-      else console.warn(`[assets] biome sprite missing: ${key}`);
-    }),
-  );
-  return biomes;
-}
-
-async function loadVehicles(
-  procedural: SpriteAtlas,
-): Promise<Record<string, Texture>> {
+async function loadVehicles(procedural: SpriteAtlas): Promise<Record<string, Texture>> {
   const vehicles: Record<string, Texture> = { ...procedural.vehicles };
   const urls: Record<string, string> = {
     ...VEHICLE_SPRITE_URLS,
@@ -161,9 +113,7 @@ async function loadVehicles(
   return vehicles;
 }
 
-async function loadPowerupIcons(
-  procedural: SpriteAtlas,
-): Promise<Record<string, Texture>> {
+async function loadPowerupIcons(procedural: SpriteAtlas): Promise<Record<string, Texture>> {
   const powerups: Record<string, Texture> = { ...procedural.powerups };
   await Promise.all(
     POWERUPS.map(async (p) => {
@@ -176,65 +126,43 @@ async function loadPowerupIcons(
   return powerups;
 }
 
+/**
+ * Load only what the race needs right now:
+ * Lovable track boards + vehicles + pickups/power-ups.
+ * Biomes / table photos / VFX / hazard PNGs are deferred.
+ */
 export async function loadSpriteAtlas(): Promise<SpriteAtlas> {
   try {
     const procedural = createSpriteAtlas();
-    const [
-      vacuum,
-      mower,
-      drone,
-      conveyor,
-      pickup,
-      pickupGlow,
-      token,
-      mine,
-      boostPad,
-      boostPadGlow,
-      vehicles,
-      biomes,
-      powerups,
-      tables,
-      trackBgs,
-    ] = await Promise.all([
-      tryKeyed('/assets/sprites/hazards/robot_vacuum.png', 96, 96),
-      tryKeyed('/assets/sprites/hazards/robot_mower.png', 96, 96),
-      tryKeyed('/assets/sprites/hazards/drone.png', 96, 96),
-      tryKeyed('/assets/sprites/hazards/conveyor.png', 128, 56),
-      tryKeyed('/assets/sprites/pickups/powerup_crate.png', 72, 72),
-      tryKeyed('/assets/sprites/pickups/powerup_crate_glow.png', 72, 72),
-      tryKeyed('/assets/sprites/pickups/token.png', 64, 64),
-      tryKeyed('/assets/sprites/pickups/mine.png', 56, 56),
-      tryKeyed('/assets/sprites/pickups/boost_pad.png', 128, 64),
-      tryKeyed('/assets/sprites/pickups/boost_pad_glow.png', 128, 64),
-      loadVehicles(procedural),
-      loadBiomes(),
-      loadPowerupIcons(procedural),
-      loadTablePhotos(),
-      loadTrackBackgrounds(),
-    ]);
+    const [pickup, pickupGlow, token, mine, boostPad, boostPadGlow, vehicles, powerups, trackBgs] =
+      await Promise.all([
+        tryKeyed('/assets/sprites/pickups/powerup_crate.png', 72, 72),
+        tryKeyed('/assets/sprites/pickups/powerup_crate_glow.png', 72, 72),
+        tryKeyed('/assets/sprites/pickups/token.png', 64, 64),
+        tryKeyed('/assets/sprites/pickups/mine.png', 56, 56),
+        tryKeyed('/assets/sprites/pickups/boost_pad.png', 128, 64),
+        tryKeyed('/assets/sprites/pickups/boost_pad_glow.png', 128, 64),
+        loadVehicles(procedural),
+        loadPowerupIcons(procedural),
+        loadTrackBackgrounds(),
+      ]);
 
-    setTablePhotoTextures(tables);
     setTrackBackgroundTextures(trackBgs);
 
-    // If core race sprites failed entirely, fall back fully.
-    if (!vacuum || !pickup || !boostPad) {
-      console.warn('[assets] core PNG incomplete, mixing procedural fallbacks');
+    if (Object.keys(trackBgs).length === 0) {
+      console.warn('[assets] no Lovable track boards loaded');
     }
 
     return {
       ...procedural,
       vehicles,
-      vacuum: vacuum ?? procedural.vacuum,
-      mower: mower ?? procedural.mower,
-      drone: drone ?? procedural.drone,
-      conveyor: conveyor ?? procedural.conveyor,
       pickup: pickup ?? procedural.pickup,
       pickupGlow: pickupGlow ?? procedural.pickupGlow,
       token: token ?? procedural.token,
       mine: mine ?? procedural.mine,
       boostPad: boostPad ?? procedural.boostPad,
       boostPadGlow: boostPadGlow ?? procedural.boostPadGlow,
-      biomes,
+      biomes: {},
       powerups,
     };
   } catch (err) {
