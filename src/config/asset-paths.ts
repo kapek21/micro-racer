@@ -75,7 +75,7 @@ export const POWERUP_ICON_URLS: Record<string, string> = {
 /** Menu track thumbnails — also used as full race boards (Lovable). */
 export const TRACK_THUMB_URLS: Record<string, string> = {
   kitchen_8: '/assets/sprites/ui/tracks/kitchen_8.png',
-  solar_8: '/assets/sprites/ui/tracks/solar_8.png',
+  bathroom_8: '/assets/sprites/ui/tracks/bathroom_8.png',
   garden_8: '/assets/sprites/ui/tracks/garden_8.png',
   garage_8: '/assets/sprites/ui/tracks/garage_8.png',
   balcony_8: '/assets/sprites/ui/tracks/balcony_8.png',

@@ -80,7 +80,7 @@
     "ui": {
       "logo_smart_rush": { "src": "/assets/sprites/ui/logo_smart_rush.png", "w": 1024, "h": 512, "orient": "logo" },
       "track_kitchen_8": { "src": "/assets/sprites/ui/tracks/kitchen_8.png", "w": 512, "h": 288, "orient": "thumb" },
-      "track_solar_8": { "src": "/assets/sprites/ui/tracks/solar_8.png", "w": 512, "h": 288, "orient": "thumb" },
+      "track_bathroom_8": { "src": "/assets/sprites/ui/tracks/bathroom_8.png", "w": 1920, "h": 1080, "orient": "thumb" },
       "track_garden_8": { "src": "/assets/sprites/ui/tracks/garden_8.png", "w": 512, "h": 288, "orient": "thumb" },
       "track_garage_8": { "src": "/assets/sprites/ui/tracks/garage_8.png", "w": 512, "h": 288, "orient": "thumb" },
       "track_balcony_8": { "src": "/assets/sprites/ui/tracks/balcony_8.png", "w": 512, "h": 288, "orient": "thumb" },

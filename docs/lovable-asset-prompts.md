@@ -96,7 +96,7 @@ Generate ALL of the following files with EXACT filenames and EXACT pixel sizes:
 
 === UI ===
 54) kitchen_8.png — 512×288 — Track thumbnail: figure-8 circuit on kitchen carpet vibe (background allowed), top-down, no UI text.
-55) solar_8.png — 512×288 — Figure-8 on solar roof metal panels.
+55) bathroom_8.png — 1920×1080 — Figure-8 on bathroom tiles (wet), ducks / soap props.
 56) garden_8.png — 512×288 — Figure-8 on garden dirt path.
 57) garage_8.png — 512×288 — Figure-8 on garage asphalt.
 58) balcony_8.png — 512×288 — Figure-8 on wet balcony tiles / wind.

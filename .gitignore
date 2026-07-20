@@ -5,3 +5,4 @@ dist/
 *.local
 smart_rush.zip
 .tmp_smart_rush/
+public/assets/smart_rush_tracks_v14.zip

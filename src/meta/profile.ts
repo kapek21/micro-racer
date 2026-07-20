@@ -131,7 +131,7 @@ export function loadProfile(): PlayerProfile {
       ...base,
       ...parsed,
       unlockedTracks: migrateTracks(parsed.unlockedTracks ?? base.unlockedTracks),
-      trackBests: parsed.trackBests ?? {},
+      trackBests: migrateTrackRecords(parsed.trackBests ?? {}),
       equippedTrail: parsed.equippedTrail ?? null,
       ownedCosmetics: parsed.ownedCosmetics ?? [],
       equippedSkins: parsed.equippedSkins ?? {},
@@ -139,7 +139,7 @@ export function loadProfile(): PlayerProfile {
       weeklyGoals: parsed.weeklyGoals ?? base.weeklyGoals,
       goalsDailyKey: parsed.goalsDailyKey ?? '',
       goalsWeeklyKey: parsed.goalsWeeklyKey ?? '',
-      weeklyWinTrackIds: parsed.weeklyWinTrackIds ?? [],
+      weeklyWinTrackIds: migrateTracks(parsed.weeklyWinTrackIds ?? []),
     };
     refreshGoalsIfNeeded(profile);
     return profile;
@@ -168,10 +168,21 @@ function refreshGoalsIfNeeded(profile: PlayerProfile): void {
 }
 
 function migrateTracks(ids: string[]): string[] {
+  const remap: Record<string, string> = { solar_8: 'bathroom_8' };
+  const mapped = ids.map((id) => remap[id] ?? id);
   const valid = new Set(TRACKS.map((t) => t.id));
-  const filtered = ids.filter((id) => valid.has(id));
+  const filtered = mapped.filter((id) => valid.has(id));
   if (filtered.length === 0) return defaultUnlockedTracks();
-  return filtered;
+  return [...new Set(filtered)];
+}
+
+function migrateTrackRecords(bests: Record<string, TrackBest>): Record<string, TrackBest> {
+  const out: Record<string, TrackBest> = {};
+  for (const [id, best] of Object.entries(bests)) {
+    const next = id === 'solar_8' ? 'bathroom_8' : id;
+    out[next] = best;
+  }
+  return out;
 }
 
 export function saveProfile(profile: PlayerProfile): void {

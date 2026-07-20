@@ -10,7 +10,7 @@ const RARITY_WEIGHT: Record<PowerUpRarity, number> = {
 /** Per-track weighted pools (figure-8 Smart Rush ids). */
 const TRACK_POOLS: Record<string, string[]> = {
   kitchen_8: ['turbo_cell', 'shield_bubble', 'smart_grip', 'auto_correct', 'nano_mine', 'magnet_pull'],
-  solar_8: ['turbo_cell', 'overcharge_boost', 'charge_link', 'smart_grip', 'shield_bubble', 'side_dash'],
+  bathroom_8: ['turbo_cell', 'overcharge_boost', 'charge_link', 'smart_grip', 'shield_bubble', 'side_dash'],
   garden_8: ['smart_grip', 'turbo_cell', 'shield_bubble', 'auto_correct', 'paint_foam', 'magnet_pull'],
   garage_8: ['charge_link', 'turbo_cell', 'gate_hack', 'shield_bubble', 'overcharge_boost', 'smart_grip'],
   balcony_8: ['side_dash', 'smart_grip', 'shield_bubble', 'turbo_cell', 'auto_correct', 'camera_cloak'],

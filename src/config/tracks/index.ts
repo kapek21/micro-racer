@@ -1,8 +1,21 @@
 import { WORLD_H, WORLD_W } from '../../core/types.js';
 import { buildTrack, defaultPickups, figure8Centerline, sampleOnFigure8 } from './builder.js';
 
+/**
+ * Lovable v14 boards (1920×1080) share one horizontal ∞ template.
+ * Calibrated in art space then mapped into world 1200×800 (anisotropic stretch
+ * matches how race-renderer sizes the PNG to the world).
+ *
+ * Art: cx=960 cy=540  scaleX=620 scaleY=390  ribbon≈145
+ */
 const CX = WORLD_W / 2;
 const CY = WORLD_H / 2;
+/** Horizontal half-extent of the lemniscate centerline. */
+const SCALE_X = (620 / 1920) * WORLD_W; // ≈ 387.5
+/** Vertical scale of the lemniscate (max |y| ≈ scaleY/3). */
+const SCALE_Y = (390 / 1080) * WORLD_H; // ≈ 288.9
+/** Driveable ribbon width between cyan borders. */
+const TRACK_WIDTH = ((145 / 1920) * WORLD_W + (145 / 1080) * WORLD_H) / 2; // ≈ 99
 
 function hazardsForSets(
   _sets: string[],
@@ -22,15 +35,11 @@ function figure8Track(opts: {
   parTimeMs: number;
   bgColor: number;
   accentColor: number;
-  scaleX?: number;
-  scaleY?: number;
   unlockedByDefault?: boolean;
   mainGimmick: string;
   hazardSets: string[];
 }): ReturnType<typeof buildTrack> {
-  const scaleX = opts.scaleX ?? 380;
-  const scaleY = opts.scaleY ?? 280;
-  const centerline = figure8Centerline(CX, CY, scaleX, scaleY, 84);
+  const centerline = figure8Centerline(CX, CY, SCALE_X, SCALE_Y, 96);
   const p = (t: number) => sampleOnFigure8(centerline, t);
   return buildTrack({
     id: opts.id,
@@ -47,11 +56,11 @@ function figure8Track(opts: {
     parTimeMs: opts.parTimeMs,
     bgColor: opts.bgColor,
     accentColor: opts.accentColor,
-    trackWidth: 96,
+    trackWidth: TRACK_WIDTH,
     centerline,
     boostPads: [
-      { x: p(0.12).x - 30, y: p(0.12).y - 16, w: 60, h: 32 },
-      { x: p(0.62).x - 30, y: p(0.62).y - 16, w: 60, h: 32 },
+      { x: p(0.12).x - 28, y: p(0.12).y - 14, w: 56, h: 28 },
+      { x: p(0.62).x - 28, y: p(0.62).y - 14, w: 56, h: 28 },
     ],
     slipZones: [],
     pickups: defaultPickups(['p1', 'p2', 'p3'], [p(0.2), p(0.45), p(0.78)]),
@@ -79,20 +88,18 @@ export const KITCHEN_8 = figure8Track({
   hazardSets: ['vacuum'],
 });
 
-export const SOLAR_8 = figure8Track({
-  id: 'solar_8',
-  name: 'Solar Roof 8',
-  namePl: 'Solar Roof Ósemka',
-  biome: 'roof',
-  surface: 'metal',
+export const BATHROOM_8 = figure8Track({
+  id: 'bathroom_8',
+  name: 'Bathroom Circuit 8',
+  namePl: 'Łazienka Ósemka',
+  biome: 'bathroom',
+  surface: 'wet',
   parTimeMs: 92_000,
-  bgColor: 0x1a1820,
-  accentColor: 0xffc040,
+  bgColor: 0x101828,
+  accentColor: 0x60d0ff,
   unlockedByDefault: true,
-  mainGimmick: 'hot_panels',
-  hazardSets: ['heat'],
-  scaleX: 400,
-  scaleY: 260,
+  mainGimmick: 'wet_tiles',
+  hazardSets: ['suds'],
 });
 
 export const GARDEN_8 = figure8Track({
@@ -135,7 +142,6 @@ export const BALCONY_8 = figure8Track({
   unlockedByDefault: false,
   mainGimmick: 'wind_rain',
   hazardSets: ['wind'],
-  scaleY: 250,
 });
 
 export const DESK_8 = figure8Track({
@@ -150,10 +156,9 @@ export const DESK_8 = figure8Track({
   unlockedByDefault: false,
   mainGimmick: 'paper_gravel',
   hazardSets: ['clutter'],
-  scaleX: 360,
 });
 
-export const TRACKS = [KITCHEN_8, SOLAR_8, GARDEN_8, GARAGE_8, BALCONY_8, DESK_8];
+export const TRACKS = [KITCHEN_8, BATHROOM_8, GARDEN_8, GARAGE_8, BALCONY_8, DESK_8];
 
 export function trackById(id: string) {
   const t = TRACKS.find((x) => x.id === id);
