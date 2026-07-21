@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { GameLoop } from './core/game-loop.js';
 import { trackById } from './config/tracks/index.js';
 import { gameModeById } from './config/game-modes.js';
-import { composeVehicle, SURFACE_LABELS } from './config/parts.js';
+import { autoIdealBuild, composeVehicle, SURFACE_LABELS } from './config/parts.js';
 import { InputManager } from './input/input-manager.js';
 import { PixiApp } from './render/pixi-app.js';
 import { RaceRenderer } from './render/race-renderer.js';
@@ -11,12 +11,19 @@ import { createRaceState, playerRacer, tickRace } from './race/race-sim.js';
 import type { RaceState } from './core/types.js';
 import { heldLabel } from './powerups/runtime.js';
 import { Hud } from './ui/hud.js';
-import { useHudStore } from './ui/hud-store.js';
+import { markHowToPlaySeen, useHudStore } from './ui/hud-store.js';
 import { applyRaceResult, equippedTrailId } from './meta/profile.js';
 import { GameAudio, RaceAudioController } from './audio/game-audio.js';
 import { bindGameAudio, unbindGameAudio } from './audio/audio-bind.js';
 import { MetabotBridge } from './platform/metabot.js';
 import './index.css';
+
+/** Studio catalog cover capture — skip menus and auto-start a race on a Lovable board. */
+function studioCoverConfig(): { trackId: string } | null {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('studioCover')) return null;
+  return { trackId: params.get('track') || 'garden_8' };
+}
 
 function syncHud(state: RaceState, trackName: string, modeName: string, surfaceLabel: string): void {
   const player = playerRacer(state);
@@ -88,7 +95,7 @@ function App(): JSX.Element {
     window.addEventListener('keydown', unlockAudio);
 
     void pixi.init(host).then(async () => {
-      if (cancelled) {
+      if (cancelled || !pixi.stage) {
         pixi.destroy();
         return;
       }
@@ -99,6 +106,40 @@ function App(): JSX.Element {
       pixi.resize();
       ro = new ResizeObserver(() => pixi.resize());
       ro.observe(host);
+
+      const cover = studioCoverConfig();
+      if (cover) {
+        markHowToPlaySeen();
+        const track = trackById(cover.trackId);
+        const built = autoIdealBuild(track.surface);
+        useHudStore.getState().setSnapshot({
+          selectedTrackId: track.id,
+          menuScreen: 'race',
+          buildOpen: false,
+          pendingBuild: {
+            wheelsId: built.wheelsId,
+            bodyId: built.bodyId,
+            engineId: built.engineId,
+            skill: built.skill,
+          },
+        });
+        trackRef.current = track;
+        finishedRef.current = false;
+        const composed = composeVehicle(
+          built.wheelsId,
+          built.bodyId,
+          built.engineId,
+          track.surface,
+          built.skill,
+          'player_build',
+        );
+        const race = createRaceState(track, composed.vehicle.id, 'standard_race', composed.buildPoints);
+        race.countdownMs = 800;
+        stateRef.current = race;
+        renderer.setOverviewCamera(true);
+        pixi.resize();
+        syncHud(race, track.namePl, gameModeById('standard_race').namePl, SURFACE_LABELS[track.surface]);
+      }
 
       loop = new GameLoop(
         1000 / 60,

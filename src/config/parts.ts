@@ -49,7 +49,7 @@ export const SURFACE_LABELS: Record<SurfaceId, string> = {
 };
 
 export const PARTS: PartDef[] = [
-  // Wheels
+  // Wheels — one flavor per surface (6)
   {
     id: 'wheels_slick',
     slot: 'wheels',
@@ -89,7 +89,46 @@ export const PARTS: PartDef[] = [
     collisionResistance: 0.15,
     recoverySpeed: 0.15,
   },
-  // Body
+  {
+    id: 'wheels_gravel',
+    slot: 'wheels',
+    namePl: 'Gravel Bite',
+    preferredSurface: 'gravel',
+    acceleration: 28,
+    topSpeed: 18,
+    traction: 0.4,
+    turnRate: 1.25,
+    boostEfficiency: 0,
+    collisionResistance: 0.28,
+    recoverySpeed: 0.12,
+  },
+  {
+    id: 'wheels_carpet',
+    slot: 'wheels',
+    namePl: 'Carpet Soft',
+    preferredSurface: 'carpet',
+    acceleration: 32,
+    topSpeed: 22,
+    traction: 0.38,
+    turnRate: 1.4,
+    boostEfficiency: 0.02,
+    collisionResistance: 0.18,
+    recoverySpeed: 0.14,
+  },
+  {
+    id: 'wheels_metal',
+    slot: 'wheels',
+    namePl: 'Metal Grip',
+    preferredSurface: 'metal',
+    acceleration: 35,
+    topSpeed: 28,
+    traction: 0.36,
+    turnRate: 1.15,
+    boostEfficiency: 0.08,
+    collisionResistance: 0.22,
+    recoverySpeed: 0.08,
+  },
+  // Body — one flavor per surface (6)
   {
     id: 'body_aero',
     slot: 'body',
@@ -138,7 +177,55 @@ export const PARTS: PartDef[] = [
     accent: 0x904010,
     vehicleClass: 'heavy',
   },
-  // Engine
+  {
+    id: 'body_street',
+    slot: 'body',
+    namePl: 'Street GT',
+    preferredSurface: 'asphalt',
+    acceleration: 22,
+    topSpeed: 48,
+    traction: 0.12,
+    turnRate: 1.05,
+    boostEfficiency: 0.12,
+    collisionResistance: 0.3,
+    recoverySpeed: 0.08,
+    color: 0x40e878,
+    accent: 0x188840,
+    vehicleClass: 'speed',
+  },
+  {
+    id: 'body_aqua',
+    slot: 'body',
+    namePl: 'Aqua Seal',
+    preferredSurface: 'wet',
+    acceleration: 18,
+    topSpeed: 35,
+    traction: 0.2,
+    turnRate: 1.2,
+    boostEfficiency: 0.08,
+    collisionResistance: 0.4,
+    recoverySpeed: 0.16,
+    color: 0x40a0ff,
+    accent: 0x104080,
+    vehicleClass: 'agile',
+  },
+  {
+    id: 'body_trail',
+    slot: 'body',
+    namePl: 'Trail Buggy',
+    preferredSurface: 'dirt',
+    acceleration: 20,
+    topSpeed: 30,
+    traction: 0.24,
+    turnRate: 1.1,
+    boostEfficiency: 0.04,
+    collisionResistance: 0.5,
+    recoverySpeed: 0.14,
+    color: 0xc8a040,
+    accent: 0x685010,
+    vehicleClass: 'balanced',
+  },
+  // Engine — one flavor per surface (6)
   {
     id: 'engine_volt',
     slot: 'engine',
@@ -178,6 +265,45 @@ export const PARTS: PartDef[] = [
     collisionResistance: 0.05,
     recoverySpeed: 0.1,
   },
+  {
+    id: 'engine_grit',
+    slot: 'engine',
+    namePl: 'Grit Crusher',
+    preferredSurface: 'gravel',
+    acceleration: 100,
+    topSpeed: 50,
+    traction: 0.1,
+    turnRate: 0.35,
+    boostEfficiency: 0.12,
+    collisionResistance: 0.25,
+    recoverySpeed: 0.2,
+  },
+  {
+    id: 'engine_loom',
+    slot: 'engine',
+    namePl: 'Loom Drive',
+    preferredSurface: 'carpet',
+    acceleration: 85,
+    topSpeed: 55,
+    traction: 0.08,
+    turnRate: 0.4,
+    boostEfficiency: 0.2,
+    collisionResistance: 0.15,
+    recoverySpeed: 0.18,
+  },
+  {
+    id: 'engine_flux',
+    slot: 'engine',
+    namePl: 'Flux Coil',
+    preferredSurface: 'metal',
+    acceleration: 95,
+    topSpeed: 80,
+    traction: 0.04,
+    turnRate: 0.28,
+    boostEfficiency: 0.4,
+    collisionResistance: 0.08,
+    recoverySpeed: 0.12,
+  },
 ];
 
 export function partsForSlot(slot: PartSlot): PartDef[] {
@@ -198,10 +324,10 @@ export function idealPartForSurface(slot: PartSlot, surface: SurfaceId): PartDef
 
 /**
  * Green zone half-width on −1…+1 skill bar.
- * Matching preferred surface → wide zone; mismatch → narrow.
+ * Same width for every part — UI must not tip which part is “best” for the surface.
  */
-export function greenZoneHalfWidth(part: PartDef, surface: SurfaceId): number {
-  return part.preferredSurface === surface ? 0.22 : 0.08;
+export function greenZoneHalfWidth(_part: PartDef, _surface: SurfaceId): number {
+  return 0.15;
 }
 
 /** Quality 0…1 from skill click (−1…+1) relative to green center (0). */

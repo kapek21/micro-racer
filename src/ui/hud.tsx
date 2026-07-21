@@ -360,14 +360,15 @@ function HowToPlay(): JSX.Element {
       </div>
 
       <HowStep n="1" title="Wybierz tor">
-        Każdy tor ma inną nawierzchnię (dywan, metal, ziemia, asfalt, mokro, żwir). Części mają
-        preferowaną nawierzchnię — zielona etykieta „idealne” pomaga wybrać.
+        Każdy tor ma inną nawierzchnię (dywan, metal, ziemia, asfalt, mokro, żwir). Wybierz spośród
+        wszystkich 6 kół i 6 nadwozi — żadna opcja nie jest oznaczona jako „najlepsza”.
       </HowStep>
 
       <HowStep n="2" title="Zbuduj auto (3 mini-gry)">
-        Kolejno: <strong className="text-white">Koła → Nadwozie → Silnik</strong>. Na każdej części
-        igła chodzi od − do +. Kliknij <strong className="text-white">USTAW</strong>, gdy igła jest w
-        zielonej strefie. Idealne dopasowanie = lepsze stats i więcej punktów budowy.
+        Kolejno: <strong className="text-white">Koła → Nadwozie → Silnik</strong> (po 6 assetów w
+        każdym slocie). Na każdej części igła chodzi od − do +. Kliknij{' '}
+        <strong className="text-white">USTAW</strong>, gdy igła jest w zielonej strefie — jakość
+        ustawienia daje punkty budowy.
       </HowStep>
 
       <HowStep n="3" title="Wyścig z AI">

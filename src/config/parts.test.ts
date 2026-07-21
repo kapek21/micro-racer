@@ -9,16 +9,17 @@ import {
 } from './parts.js';
 import { vehicleById } from './vehicles.js';
 
-test('catalog has 9 parts across 3 slots', () => {
-  assert.equal(PARTS.length, 9);
-  assert.equal(PARTS.filter((p) => p.slot === 'wheels').length, 3);
-  assert.equal(PARTS.filter((p) => p.slot === 'body').length, 3);
-  assert.equal(PARTS.filter((p) => p.slot === 'engine').length, 3);
+test('catalog has 6 wheels, 6 bodies, 6 engines', () => {
+  assert.equal(PARTS.length, 18);
+  assert.equal(PARTS.filter((p) => p.slot === 'wheels').length, 6);
+  assert.equal(PARTS.filter((p) => p.slot === 'body').length, 6);
+  assert.equal(PARTS.filter((p) => p.slot === 'engine').length, 6);
 });
 
-test('matching surface has wider green zone', () => {
+test('green zone width is equal for all parts (no ideal tip)', () => {
   const slick = partById('wheels_slick');
-  assert.ok(greenZoneHalfWidth(slick, 'asphalt') > greenZoneHalfWidth(slick, 'dirt'));
+  assert.equal(greenZoneHalfWidth(slick, 'asphalt'), greenZoneHalfWidth(slick, 'dirt'));
+  assert.equal(greenZoneHalfWidth(partById('wheels_knobby'), 'dirt'), greenZoneHalfWidth(slick, 'asphalt'));
 });
 
 test('composeVehicle registers and scores build points', () => {

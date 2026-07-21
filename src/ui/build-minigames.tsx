@@ -150,12 +150,11 @@ export function BuildMinigames({ surface, onComplete, onCancel }: BuildMinigames
         </p>
         <h2 className="mb-3 text-center font-display text-lg text-white">{SLOT_LABEL[slot]}</h2>
 
-        <div className="mb-3 grid grid-cols-1 gap-2">
+        <div className="mb-3 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
           {options.map((p) => (
             <PartChoice
               key={p.id}
               part={p}
-              surface={surface}
               selected={p.id === selectedId}
               onSelect={() => {
                 if (!locked) setPicked({ ...picked, [slot]: p.id });
@@ -191,16 +190,13 @@ function optionsFor(slot: PartSlot): PartDef[] {
 
 function PartChoice({
   part,
-  surface,
   selected,
   onSelect,
 }: {
   part: PartDef;
-  surface: SurfaceId;
   selected: boolean;
   onSelect(): void;
 }): JSX.Element {
-  const ideal = part.preferredSurface === surface;
   const src = PART_SPRITE_URLS[part.id];
   return (
     <button
@@ -217,14 +213,7 @@ function PartChoice({
         />
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex justify-between gap-2">
-          <span className="font-display text-[11px]">{part.namePl}</span>
-          {ideal ? (
-            <span className="shrink-0 text-green-400">idealne</span>
-          ) : (
-            <span className="shrink-0 text-white/35">{SURFACE_LABELS[part.preferredSurface]}</span>
-          )}
-        </div>
+        <span className="font-display text-[11px]">{part.namePl}</span>
       </div>
     </button>
   );

@@ -290,4 +290,7 @@ body,
 
 canvas {
   touch-action: none;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }

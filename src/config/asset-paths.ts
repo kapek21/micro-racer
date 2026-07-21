@@ -40,17 +40,26 @@ export const BIOME_SPRITE_URLS: Record<string, string> = {
   city_lamp: '/assets/sprites/biomes/city_lamp.png',
 };
 
-/** Build minigame part icons (9). */
+/** Build minigame part icons — 6 wheels + 6 bodies + 6 engines. */
 export const PART_SPRITE_URLS: Record<string, string> = {
   wheels_slick: '/assets/sprites/parts/wheels_slick.png',
   wheels_knobby: '/assets/sprites/parts/wheels_knobby.png',
   wheels_rain: '/assets/sprites/parts/wheels_rain.png',
+  wheels_gravel: '/assets/sprites/parts/wheels_gravel.png',
+  wheels_carpet: '/assets/sprites/parts/wheels_carpet.png',
+  wheels_metal: '/assets/sprites/parts/wheels_metal.png',
   body_aero: '/assets/sprites/parts/body_aero.png',
   body_compact: '/assets/sprites/parts/body_compact.png',
   body_tank: '/assets/sprites/parts/body_tank.png',
+  body_street: '/assets/sprites/parts/body_street.png',
+  body_aqua: '/assets/sprites/parts/body_aqua.png',
+  body_trail: '/assets/sprites/parts/body_trail.png',
   engine_volt: '/assets/sprites/parts/engine_volt.png',
   engine_torque: '/assets/sprites/parts/engine_torque.png',
   engine_pulse: '/assets/sprites/parts/engine_pulse.png',
+  engine_grit: '/assets/sprites/parts/engine_grit.png',
+  engine_loom: '/assets/sprites/parts/engine_loom.png',
+  engine_flux: '/assets/sprites/parts/engine_flux.png',
 };
 
 /** Power-up HUD / pickup icons (15). */

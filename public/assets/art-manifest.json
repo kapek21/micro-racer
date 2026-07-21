@@ -53,12 +53,21 @@
       "wheels_slick": { "src": "/assets/sprites/parts/wheels_slick.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
       "wheels_knobby": { "src": "/assets/sprites/parts/wheels_knobby.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
       "wheels_rain": { "src": "/assets/sprites/parts/wheels_rain.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "wheels_gravel": { "src": "/assets/sprites/parts/wheels_gravel.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "wheels_carpet": { "src": "/assets/sprites/parts/wheels_carpet.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "wheels_metal": { "src": "/assets/sprites/parts/wheels_metal.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
       "body_aero": { "src": "/assets/sprites/parts/body_aero.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
       "body_compact": { "src": "/assets/sprites/parts/body_compact.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
       "body_tank": { "src": "/assets/sprites/parts/body_tank.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "body_street": { "src": "/assets/sprites/parts/body_street.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "body_aqua": { "src": "/assets/sprites/parts/body_aqua.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "body_trail": { "src": "/assets/sprites/parts/body_trail.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
       "engine_volt": { "src": "/assets/sprites/parts/engine_volt.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
       "engine_torque": { "src": "/assets/sprites/parts/engine_torque.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
-      "engine_pulse": { "src": "/assets/sprites/parts/engine_pulse.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" }
+      "engine_pulse": { "src": "/assets/sprites/parts/engine_pulse.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "engine_grit": { "src": "/assets/sprites/parts/engine_grit.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "engine_loom": { "src": "/assets/sprites/parts/engine_loom.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" },
+      "engine_flux": { "src": "/assets/sprites/parts/engine_flux.png", "w": 256, "h": 256, "loadW": 128, "loadH": 128, "orient": "icon" }
     },
     "powerups": {
       "turbo_cell": { "src": "/assets/sprites/ui/powerups/turbo_cell.png", "w": 112, "h": 112, "loadW": 56, "loadH": 56, "orient": "icon" },

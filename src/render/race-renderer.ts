@@ -86,6 +86,11 @@ export class RaceRenderer {
     else this.playerTrail = 'default';
   }
 
+  /** Lock camera on full board center (used for Studio cover capture). */
+  setOverviewCamera(enabled: boolean): void {
+    this.camera.setOverview(enabled);
+  }
+
   sync(state: RaceState, track: TrackDef, dtMs: number): void {
     this.t += dtMs;
     this.particles.tick(dtMs);
